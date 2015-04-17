@@ -1,0 +1,100 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[paper=a4paper, hmargin=1.5cm, bottom=1.5cm, top=3.5cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{xcolor} % for setting colors
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage[framemethod=tikz]{mdframed}
+\usepackage{algpseudocode}
+\usepackage{ifthen}
+\usepackage{enumitem}
+\usepackage{tikz}
+
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+
+%\let\NombreFuncion=\textsc
+%\let\TipoVariable=\texttt
+
+%\newcommand{\TipoFuncion}[3]{%
+  %\NombreFuncion{#1}(#2) \ifx#3\empty\else $\to$ \res\,: \TipoVariable{#3}\fi%
+%}
+
+% set the default code style
+\lstset{
+    frame=tb, % draw a frame at the top and bottom of the code block
+    tabsize=4, % tab space width
+    showstringspaces=false, % don't mark spaces in strings
+    numbers=left, % display line numbers on the left
+    commentstyle=\color{green}, % comment color
+    keywordstyle=\color{blue}, % keyword color
+    stringstyle=\color{red} % string color
+}
+
+\title{Organizacion del Computador II \\ TP2}
+
+\newcommand{\order}[1]{$\mathcal{O}(#1)$}
+
+\begin{document}
+
+%% cover page
+
+\maketitle
+
+\bigskip
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l l l|}
+\hline
+Integrante       & \multicolumn{1}{c}{LU}     & Correo electronico        \\ \hline
+Martin Baigorria & \multicolumn{1}{c}{575/14} & martinbaigorria@gmail.com \\ 
+Martin Baigorria & 575/14                      & martinbaigorria@gmail.com \\
+Martin Baigorria & 575/14                      & martinbaigorria@gmail.com \\ \hline
+\end{tabular}
+\end{table}
+
+\vfill
+
+\begin{center}
+\textbf{Reservado para la catedra}
+\end{center}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Instancia       & Docente & Nota \\ \hline
+Primera entrega &         &      \\ \hline
+Segunda entrega &         &      \\ \hline
+\end{tabular}
+\end{table}
+
+
+\tableofcontents
+
+% end cover page
+
+\pagebreak
+
+\input{blur}
+\newpage
+\input{exp_blur}
+
+\newpage
+
+\input{merge}
+\newpage
+\input{exp_merge}
+
+\newpage
+
+\input{hsl}}
+\newpage
+\input{exp_hsl}
+
+\end{document}
