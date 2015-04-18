@@ -6,7 +6,8 @@ El informe no puede exceder las 20 paginas, sin contar la caratula.
 
 ## Pitfalls/Hints
 
-* Acuerdense de que en los registros esta todo dado vuelta!!!!!
+* Acuerdense de que en los registros esta todo dado vuelta!!!!! Los pixeles se cargan  ->  BGRA
+
 
 * **movss**. Es el comando que mueve 32 bits (scalar single). Se usa para cargar la parte baja de un registo xmm o para mover a memoria. El tema es que no es lo mismo copiar desde un registro que copiar de memoria.
 ```asm
