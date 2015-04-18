@@ -32,17 +32,17 @@ ASM_merge1:
 .loop:
   cmp rcx, rax
   je .fin
-  ; ABGR
+  ; BGRA
 
-  movdqu xmm1, [r14 + rbx] ; xmm1 = [x|x|x|x|x|x|x|x | x|x|x|x|A|B|G|R]
-  movdqu xmm2, [r15 + rbx] ; xmm2 = [x|x|x|x|x|x|x|x | x|x|x|x|A|B|G|R]
+  movdqu xmm1, [r14 + rbx] ; xmm1 = [x|x|x|x|x|x|x|x | x|x|x|x|B|G|R|A]
+  movdqu xmm2, [r15 + rbx] ; xmm2 = [x|x|x|x|x|x|x|x | x|x|x|x|B|G|R|A]
   pxor xmm3, xmm3
 
-  punpcklbw xmm1, xmm3     ; xmm1 =  [x|x|x|x|x|x|x|x | 0|A|0|B|0|G|0|R] 
-  punpcklbw xmm2, xmm3     ; xmm2 =  [x|x|x|x|x|x|x|x | 0|A|0|B|0|G|0|R] 
+  punpcklbw xmm1, xmm3     ; xmm1 =  [x|x|x|x|x|x|x|x | 0|B|0|G|0|R|0|A] 
+  punpcklbw xmm2, xmm3     ; xmm2 =  [x|x|x|x|x|x|x|x | 0|B|0|G|0|R|0|A] 
 
-  punpcklwd xmm1, xmm3     ; xmm1 =  [0|0|0|A|0|0|0|B | 0|0|0|G|0|0|0|R] 
-  punpcklwd xmm2, xmm3     ; xmm2 =  [0|0|0|A|0|0|0|B | 0|0|0|G|0|0|0|R] 
+  punpcklwd xmm1, xmm3     ; xmm1 =  [0|0|0|B|0|0|0|G | 0|0|0|R|0|0|0|A] 
+  punpcklwd xmm2, xmm3     ; xmm2 =  [0|0|0|B|0|0|0|G | 0|0|0|R|0|0|0|A] 
 
   cvtdq2ps xmm1, xmm1      ; (float) xmm1
   cvtdq2ps xmm2, xmm2      ; (float) xmm2
