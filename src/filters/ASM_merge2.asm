@@ -15,7 +15,6 @@ ASM_merge2:
   push r14
   push r15
 
-  ; TODO: PILA DESALINEADA
   ; xmm0 = value
   mov r12, rdi ; r12 = w
   mov r13, rsi ; r13 = h

@@ -13,6 +13,7 @@ ASM_hsl1:
   push r12
   push r13
   push r14
+  sub rsp, 8
 
   ; xmm0 = hh
   ; xmm1 = ss
@@ -21,6 +22,7 @@ ASM_hsl1:
   mov r13, rsi ; r13 = h
   mov r14, rdx ; r14 = data
 
+  add rsp, 8
   pop r14
   pop r13
   pop r12
