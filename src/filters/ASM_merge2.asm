@@ -76,9 +76,6 @@ ASM_merge2:
   mulps xmm1, xmm3         ; xmm1 = B1*value | G1*value | R1*value | A1*1.0   
   mulps xmm2, xmm4         ; xmm2 = B2*(1-value) | G2*(1-value) | R2*(1-value)| A2*0
 
- ; addps xmm1, xmm2         ; xmm1 = exactamente lo que queremos
- ; cvtps2dq xmm1, xmm1      ; Convert Packed Single-Precision FP Values to Packed Dword Integers
-  
   cvtps2dq xmm1, xmm1      ; (uint32_t) xmm1 = [B|G|R|A] (signed)
   cvtps2dq xmm2, xmm2      ; (uint32_t) xmm1 = [B|G|R|0] (signed)
 
