@@ -39,15 +39,17 @@ ASM_blur1:
   xor rdx, rdx ; contador columnas recorridas
 
   ; armar registro para dividir
-  pxor xmm2, xmm2 ; xmm2 = [9.0 | 9.0 | 9.0 | 9.0]
-  movss xmm2, [_9]
-  pslldq xmm2, 4
-  movss xmm2, [_9]
-  pslldq xmm2, 4
-  movss xmm2, [_9]
-  pslldq xmm2, 4
-  movss xmm2, [_9]
-  pslldq xmm2, 4
+  pxor   xmm7, xmm7 ; xmm7 = [9.0 | 9.0 | 9.0 | 9.0]
+  movss  xmm7, [_9]
+  pslldq xmm7, 4
+  movss  xmm7, [_9]
+  pslldq xmm7, 4
+  movss  xmm7, [_9]
+  pslldq xmm7, 4
+  movss  xmm7, [_9]
+  pslldq xmm7, 4
+
+  pxor xmm6, xmm6  ; para desempaquetar
 
   ; copiar primera fila
 .copy_row:
@@ -56,8 +58,8 @@ ASM_blur1:
   mul r9, rbx  ; numero de pixeles en filas recorridas (actualizo fila)
 
 .loop:
-  movdqu xmm5, [r13 + r9*SIZE_PIXEL + r8*SIZE_PIXEL] ; [data + row_index + col_offset]
-  movdqu [r14 + r8*SIZE_PIXEL], xmm5
+  movdqu xmm1, [r13 + r9*SIZE_PIXEL + r8*SIZE_PIXEL] ; [data + row_index + col_offset]
+  movdqu [r14 + r8*SIZE_PIXEL], xmm1
   add r8, 4   ; los pixeles son multiplos de 4
   cmp r8, rbx
   jne .loop   ; si son iguales, ya recorri todos
@@ -77,15 +79,75 @@ ASM_blur1:
                ; puntero a fila anterior: r15, puntero a fila actual: r14
   jmp .copy_row
 
+  xor r8, r8 ; contador de columnas (lo reutilizo)
+  
+  xor r9, r9 ; numero de pixeles en filas recorridas
+  mov r9, rdi
+  mul r9, rbx
+
+  xor r10, r10 ; r9 + 1, siguiente fila
+  mov r10, r9
+  inc r10
+  mul r10, rbx
+
 .loop_columns:
-  ;TODO
-  ;Iterar las filas que cree mas la siguiente
-  ;Convertir de ints de 8 bits a floats de 32 desempaquetando.
-  ;Dividir, luego sumar para evitar el overflow.
-  ;Empaquetar y escribir en *data el nuevo valor.
-  ;pasar a la siguiente fila con jmp .loop_rows
-  ;VER: Tenemos las filas 1 2 y 3 copiadas. Por ahi se puede optimizarr
-  ; para no tener que copiar esa fila denuevo.
+
+  ; sumo la primera fila de pixeles (res: xmm1)
+  movdqu xmm1, [r15 + r8*SIZE_PIXEL] ; xmm1 = [B|G|R|A B|G|R|A B|G|R|A x|x|x|x]
+  psrldq xmm1, 4       ; xmm1 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+
+  movdqu xmm2, xmm1    ; xmm2 = xmm1
+  punpcklbw xmm1, xmm6 ; xmm1 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
+
+  punpckhbw xmm2, xmm6 ; xmm2 = [0|0|0|0|0|0|0|0 0|B3|0|G3|0|R3|0|A3]
+
+  paddw xmm1, xmm2     ; xmm1 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
+
+  ; sumo la segunda fila de pixeles (res: xmm2)
+  movdqu xmm2, [r14 + r8*SIZE_PIXEL]
+  psrldq xmm2, 4       ; xmm2 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+
+  movdqu xmm3, xmm2    ; xmm3 = xmm2
+  punpcklbw xmm2, xmm6 ; xmm2 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
+
+  punpckhbw xmm3, xmm6 ; xmm3 = [0|0|0|0|0|0|0|0 0|B3|0|G3|0|R3|0|A3]
+
+  paddw xmm2, xmm3     ; xmm1 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
+
+  ; sumo la tercera fila de pixeles (res: xmm3)
+  movdqu xmm3, [r13 + r10*SIZE_PIXEL + r8*SIZE_PIXEL]
+  psrldq xmm3, 4       ; xmm3 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+
+  movdqu xmm4, xmm3    ; xmm4 = xmm3
+  punpcklbw xmm3, xmm6 ; xmm3 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
+
+  punpckhbw xmm4, xmm6 ; xmm4 = [0|0|0|0|0|0|0|0 0|B3|0|G3|0|R3|0|A3]
+
+  paddw xmm3, xmm4     ; xmm3 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
+
+  ; sumo todos los resultados (res: xmm1)
+  paddw xmm1, xmm2
+  paddw xmm1, xmm3     ; xmm1 = [3B|3G|3R|3A 6B|6G|6R|6A]
+  movdqu xmm2, xmm1    ; xmm2 = [3B|3G|3R|3A 6B|6G|6R|6A]
+  psrldq xmm2, 8       ; xmm2 = [0|0|0|0     3B|3G|3R|3A]
+  paddw xmm1, xmm2     ; xmm1 = [3B|3G|3R|3A 9B|9G|9R|9A]
+  
+  ; asigno mas espacio tirando lo de arriba, convierto a float y divido
+  punpcklwd xmm1, xmm6 ; xmm1 = [9B|9G|9R|9A] (dwords)
+  cvtdq2ps xmm1, xmm1
+  divps xmm1, xmm7     ; xmm1 / 9
+
+  ; convierto a entero, empaqueto y escribo en memoria
+  cvtps2dq xmm1, xmm1 ; xmm1 = [9B|9G|9R|9A] (int32), x[31:8] = 0, no hay overflow
+  packusdw xmm1, xmm6 ; pack from dword to word
+  packuswb xmm1, xmm6 ; pack from word to byte, (res: lower dword)
+  movd [r13 + r9*SIZE_PIXEL + r8*SIZE_PIXEL], xmm1
+
+  add r8, 4         ; avanzo de a 4 pixeles
+  cmp r8, rbx
+  jne .loop_columns
+
+  jmp .loop_rows    ; si llegamos aca, terminamos de iterar las columnas
 
 .fin:
   pop r15
