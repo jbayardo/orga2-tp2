@@ -59,9 +59,9 @@ ASM_hsl1:
 
   movups xmm7, [_1111]   ; xmm7 = [1 | 1 | 1 | 1]
   pxor xmm8, xmm8      ; xmm8 = 0
-  movups xmm9, [_360]   ; xmm9 = [ x | x | x | 360.0]
-  movups xmm10, [_n360]   ; xmm10 = [ x | x | x | -360.0]
-  movups xmm11, [_256]   ; xmm11 = [ x | x | x | 256.0]
+  movss xmm9, [_360]   ; xmm9 = [ x | x | x | 360.0]
+  movss xmm10, [_n360]   ; xmm10 = [ x | x | x | -360.0]
+  movss xmm11, [_256]   ; xmm11 = [ x | x | x | 256.0]
 
 .loop:
   cmp rcx, r15   ; si iterador = h*w, listo, terminamos
@@ -70,7 +70,9 @@ ASM_hsl1:
   lea rdi, [r14 + 4*rcx] ; rdi = r14 + rcx
   mov rsi, rbx         ; rsi = puntero a float
   push rcx
+  sub rsp, 8
   call rgbTOhsl
+  add rsp, 8
   pop rcx
   ; ahora en rbx tengo 4 floats, que representan la transparencia, H, S, L
 
@@ -109,8 +111,8 @@ ASM_hsl1:
   pxor xmm13, xmm13    ; xmm13 = [0 | 0 | 0 | 0]
   
 
-  cmpnltps xmm12, xmm3 ; xmm12 = 1 o 0 dependiendo
-  cmpltps xmm13, xmm3  ; xmm13 = 1 o 0 dependiendo
+  cmpltps xmm12, xmm3 ; xmm12 = 1 o 0 dependiendo
+  cmpnltps xmm13, xmm3  ; xmm13 = 1 o 0 dependiendo
 
   pand xmm5, xmm12
   pand xmm6, xmm13
@@ -122,8 +124,11 @@ ASM_hsl1:
   movups [rbx], xmm3  ; lo guardo en mi posicion de memoria
   mov rdi, rbx
   lea rsi, [r14 + 4*rcx] 
+  
   push rcx
+  sub rsp, 8
   call hslTOrgb
+  add rsp, 8
   pop rcx
 
   inc rcx
