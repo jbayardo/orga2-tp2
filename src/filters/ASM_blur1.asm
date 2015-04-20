@@ -5,7 +5,9 @@
 ;                                                                           ;
 ; ************************************************************************* ;
 
-% define SIZE_PIXEL 4
+%define SIZE_PIXEL 4
+
+extern malloc
 
 ; rax, rbx*, rcx, rdx, rsi, rdi, rbp, rsp, r8 ...  R12*, R13*, R14*, R15*
 ; void ASM_blur1( uint32_t w, uint32_t h, uint8_t* data )
@@ -36,7 +38,8 @@ ASM_blur1:
 
   ; variables
   xor rdi, rdi ; contador filas recorridas
-  xor rdx, rdx ; contador columnas recorridas
+  mov rdx, rdi ; limite columnas (w-1)
+  dec rdx
 
   ; armar registro para dividir
   pxor   xmm7, xmm7 ; xmm7 = [9.0 | 9.0 | 9.0 | 9.0]
@@ -53,19 +56,23 @@ ASM_blur1:
 
   ; copiar primera fila
 .copy_row:
-  xor r8, r8   ; numero de pixeles en columnas recorridas
-  mov r9, rdi  ; copio numero de filas recorridas
-  mul r9, rbx  ; numero de pixeles en filas recorridas (actualizo fila)
+  xor r8, r8   ; columnas recorridas
+
+  xor rax, rax
+  mov rax, rdi
+  mul rbx      ; rax = rax*rbx, offset en pixeles
+  mov r9, rbx
 
 .loop:
-  movdqu xmm1, [r13 + r9*SIZE_PIXEL + r8*SIZE_PIXEL] ; [data + row_index + col_offset]
-  movdqu [r14 + r8*SIZE_PIXEL], xmm1
+  movdqu xmm1, [r13 + r9*SIZE_PIXEL] ; en req a memoria recorro con offset
+  movdqu [r14 + r8*SIZE_PIXEL], xmm1 ; en write a temp row recorro con columnas
   add r8, 4   ; los pixeles son multiplos de 4
+  add r9, 4   ; update offset
   cmp r8, rbx
   jne .loop   ; si son iguales, ya recorri todos
 
   cmp rdi, 0  ; caso borde, donde al principio cargo la primera fila
-  jne .loop_columns:
+  jne .loop_columns
 
 .loop_rows:
   inc rdi      ; paso a la siguiente fila
@@ -79,16 +86,15 @@ ASM_blur1:
                ; puntero a fila anterior: r15, puntero a fila actual: r14
   jmp .copy_row
 
-  xor r8, r8 ; contador de columnas (lo reutilizo)
+  xor r8, r8  ; contador de columnas (lo reutilizo)
   
-  xor r9, r9 ; numero de pixeles en filas recorridas
-  mov r9, rdi
-  mul r9, rbx
-
-  xor r10, r10 ; r9 + 1, siguiente fila
-  mov r10, r9
-  inc r10
-  mul r10, rbx
+  xor rax, rax
+  mov rax, rdi ; numero de pixeles recorridos en la siguiente fila
+  mul rbx
+  add rax, r8
+  add rax, rdi ; siguiente fila
+  dec rax      ; pido un pixel de menos y despues hago un shift,
+               ; para no tener un segfault al procesar el ultimo pixel
 
 .loop_columns:
 
@@ -115,8 +121,9 @@ ASM_blur1:
   paddw xmm2, xmm3     ; xmm1 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
 
   ; sumo la tercera fila de pixeles (res: xmm3)
-  movdqu xmm3, [r13 + r10*SIZE_PIXEL + r8*SIZE_PIXEL]
+  movdqu xmm3, [r13 + rax*SIZE_PIXEL] ; xmm3 = [D|C|B|A], A es basura
   psrldq xmm3, 4       ; xmm3 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+                       ; tiro pixel basura
 
   movdqu xmm4, xmm3    ; xmm4 = xmm3
   punpcklbw xmm3, xmm6 ; xmm3 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
@@ -141,10 +148,19 @@ ASM_blur1:
   cvtps2dq xmm1, xmm1 ; xmm1 = [9B|9G|9R|9A] (int32), x[31:8] = 0, no hay overflow
   packusdw xmm1, xmm6 ; pack from dword to word
   packuswb xmm1, xmm6 ; pack from word to byte, (res: lower dword)
-  movd [r13 + r9*SIZE_PIXEL + r8*SIZE_PIXEL], xmm1
 
-  add r8, 4         ; avanzo de a 4 pixeles
-  cmp r8, rbx
+  add r8, 1 ; avanzo de a 1 pixel
+  movd [r13 + rax*SIZE_PIXEL + 8], xmm1 ; sumo 8 porque cuando pido memoria, arranco
+                                       ; un pixel antes en xmm3 para evitar el segfault del final
+                                       ; e.g. XAAA   xmm1 = ZAAA
+                                       ;      ZBOB   xmm2 = ZBOB
+                                       ;      ZCCCS  xmm3 = SCCC
+                                       ; entonces lo que hago es:
+                                       ;             xmm1 = ZAAA
+                                       ;             xmm2 = ZBOB
+                                       ;             xmm3 = CCCZ y limpio con bitshift.
+
+  cmp r8, rdx ; paro cuando llego a la anteultima columna
   jne .loop_columns
 
   jmp .loop_rows    ; si llegamos aca, terminamos de iterar las columnas
