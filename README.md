@@ -19,9 +19,13 @@ movss xmm1, [memoria]   ; lo mismo que antes, y ademas pone el resto de xmm1 en 
 
 No se si vieron, pero actualizaron como hay que hacer blur. Le mande un mail a David preguntando instrucciones explicitas y me contesto:
 >El algoritmo es el mismo. Solo que ahora van a tener que mantener las dos lineas superiores actualizadas por cada ciclo y leer los datos de ahi.
+
 >En si cambia el lugar desde donde se leen los datos. La parte importante es que no necesariamente tienen que respetar este algoritmo. Pueden programarlo como gusten. Por ejemplo copiando toda la matriz a un buffer. El problema es que seguramente resulte mas ineficiente.
+
 >Parte de la complejidad que deben resolver es como van a decidir hacerlo en función de buscar una solución eficiente.
+
 >Saludos!
+
 >D!
 
 
