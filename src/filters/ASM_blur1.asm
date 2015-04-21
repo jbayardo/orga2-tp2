@@ -10,6 +10,9 @@
 extern malloc
 extern free
 
+; gdb --args tp2 asm1 blur lenna.bmp blur1asm.bmp
+; ./diff -i blur1asm.bmp blurc.bmp 5
+
 ; rax, rbx*, rcx, rdx, rsi, rdi, rbp, rsp, r8 ...  R12*, R13*, R14*, R15*
 ; void ASM_blur1( uint32_t w, uint32_t h, uint8_t* data )
 global ASM_blur1
@@ -38,15 +41,17 @@ ASM_blur1:
   mov r15, rax ; r15: temp row 0
 
   ; armar registro para dividir
+  pxor xmm6, xmm6   ; por alguna razon no puedo mover muchas veces _9
+  movss xmm6, [_9]  ; si lo hago xmm7 queda mal. primero lo copio y lo voy
+                    ; moviendo. debe ser porque al no tener el mismo size lo limpia
   pxor   xmm7, xmm7 ; xmm7 = [9.0 | 9.0 | 9.0 | 9.0]
-  movss  xmm7, [_9]
+  movss  xmm7, xmm6
   pslldq xmm7, 4
-  movss  xmm7, [_9]
+  movss  xmm7, xmm6
   pslldq xmm7, 4
-  movss  xmm7, [_9]
+  movss  xmm7, xmm6
   pslldq xmm7, 4
-  movss  xmm7, [_9]
-  pslldq xmm7, 4
+  movss  xmm7, xmm6
 
   pxor xmm6, xmm6  ; para desempaquetar
 
@@ -56,7 +61,8 @@ ASM_blur1:
   dec rax
   mul rbx      ; w*(h-1)
 
-  mov rdx, rbx ; limite columnas (w-1)
+  mov rdx, rbx ; limite columnas (w-2)
+  dec rdx
   dec rdx
 
   ; copiar primera fila
@@ -87,11 +93,16 @@ ASM_blur1:
   jmp .copy_row
 
 .clean_counter:
-  xor r8, r8  ; contador de columnas (lo reutilizo)
+  sub rdi, rbx ; rdi subio cuando copie la fila, ahora se lo resto
+  xor r8, r8   ; contador de columnas (lo reutilizo)
+
+; debug
+; x /16ub $r15+$r8*4
+; p /u $xmm1
 
 .loop_columns:
 
-  ; sumo la primera fila de pixeles (res: xmm1)
+ ; sumo la primera fila de pixeles (res: xmm1)
   movdqu xmm1, [r15 + r8*SIZE_PIXEL] ; xmm1 = [B|G|R|A B|G|R|A B|G|R|A x|x|x|x]
   psrldq xmm1, 4       ; xmm1 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
 
@@ -124,8 +135,8 @@ ASM_blur1:
                        ;             xmm1 = ZAAA
                        ;             xmm2 = ZBOB
                        ;             xmm3 = CCCZ y limpio con bitshift.
-  movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; xmm3 = [D|C|B|A], A es basura
-  psrldq xmm3, 4       ; xmm3 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+  movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; xmm3 = [A|B|C|D], A es basura
+  pslldq xmm3, 4       ; xmm3 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
                        ; tiro pixel basura
 
   movdqu xmm4, xmm3    ; xmm4 = xmm3
@@ -141,7 +152,7 @@ ASM_blur1:
   movdqu xmm2, xmm1    ; xmm2 = [3B|3G|3R|3A 6B|6G|6R|6A]
   psrldq xmm2, 8       ; xmm2 = [0|0|0|0     3B|3G|3R|3A]
   paddw xmm1, xmm2     ; xmm1 = [3B|3G|3R|3A 9B|9G|9R|9A]
-  
+
   ; asigno mas espacio tirando lo de arriba, convierto a float y divido
   punpcklwd xmm1, xmm6 ; xmm1 = [9B|9G|9R|9A] (dwords)
   cvtdq2ps xmm1, xmm1
@@ -154,13 +165,14 @@ ASM_blur1:
 
   movd [r13 + rdi*SIZE_PIXEL + SIZE_PIXEL], xmm1
 
-  inc rdi   ; recorri un pixel
-  inc r8    ; avanzo de a 1 pixel
+  inc rdi  ; recorri un pixel
+  inc r8   ; avanzo de a 1 pixel
 
   cmp r8, rdx ; paro cuando llego a la anteultima columna
   jne .loop_columns
 
-  inc rdi     ; lo tengo que incrementar porque corto en w-2, para que avance de fila
+  inc rdi         ; lo tengo que incrementar porque corto en w-1, para que avance de fila
+  inc rdi
 
   jmp .loop_rows  ; si llegamos aca, terminamos de iterar las columnas
 
