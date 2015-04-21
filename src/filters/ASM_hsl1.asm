@@ -10,6 +10,7 @@
 extern rgbTOhsl
 extern hslTOrgb
 extern malloc
+extern free
 
 ; void ASM_hsl1(uint32_t w, uint32_t h, uint8_t* data, float hh, float ss, float ll)
 global ASM_hsl1
@@ -135,6 +136,8 @@ ASM_hsl1:
   jmp .loop
 
 .fin:
+  mov rdi, rbx
+  call free
   add rsp, 8
   pop r15
   pop r14
