@@ -40,6 +40,14 @@ ASM_blur1:
   call malloc  ; rax: pointer to temp row 0
   mov r15, rax ; r15: temp row 0
 
+  ; control reg MXCSR (10.2.3.1, vol 1)
+  ; controla el comportamiento de muchas instrucciones de SSE.
+  ; las conversiones de float a entero dependen de este registro,
+  ; para hacer round up o down.
+  ; The default MXCSR value at reset is 1F80H.
+  ; 0x7F80 para que rendondee hacia abajo.
+  ldmxcsr [_floor] ; reciclo memoria, necesito 32 bits.
+
   ; armar registro para dividir
   movdqu xmm7, [_9]
 
@@ -119,26 +127,38 @@ ASM_blur1:
   paddw xmm2, xmm3     ; xmm1 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
 
   ; sumo la tercera fila de pixeles (res: xmm3)
+  ; mov r9, rdi
+  ; add r9, rbx          ; agrego una fila al contador de pixeles
+  ; dec r9               ; arranco un pixel antes en xmm3 para evitar el segfault al final
+  ;                      ; e.g. XAAA   xmm1 = ZAAA
+  ;                      ;      ZBOB   xmm2 = ZBOB
+  ;                      ;      ZCCCS  xmm3 = SCCC
+  ;                      ; entonces lo que hago es:
+  ;                      ;             xmm1 = ZAAA
+  ;                      ;             xmm2 = ZBOB
+  ;                      ;             xmm3 = CCCZ y limpio con bitshift.
+  ; movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; xmm3 = [D|C|B|A], A es basura
+  ; psrldq xmm3, 4       ; xmm3 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+  ;                      ; tiro pixel basura
+
+  ; movdqu xmm4, xmm3    ; xmm4 = xmm3
+  ; punpcklbw xmm3, xmm6 ; xmm3 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
+  ; punpckhbw xmm4, xmm6 ; xmm4 = [0|0|0|0|0|0|0|0 0|B3|0|G3|0|R3|0|A3]
+  ; paddw xmm3, xmm4     ; xmm3 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
+
+  ; sumo la tercera fila (sin 'hack', da igual)
   mov r9, rdi
-  add r9, rbx          ; agrego una fila al contador de pixeles
-  dec r9               ; arranco un pixel antes en xmm3 para evitar el segfault al final
-                       ; e.g. XAAA   xmm1 = ZAAA
-                       ;      ZBOB   xmm2 = ZBOB
-                       ;      ZCCCS  xmm3 = SCCC
-                       ; entonces lo que hago es:
-                       ;             xmm1 = ZAAA
-                       ;             xmm2 = ZBOB
-                       ;             xmm3 = CCCZ y limpio con bitshift.
-  movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; xmm3 = [D|C|B|A], A es basura
-  psrldq xmm3, 4       ; xmm3 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
-                       ; tiro pixel basura
+  add r9, rbx
+  movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; [D|C|B|A]
 
-  movdqu xmm4, xmm3    ; xmm4 = xmm3
-  punpcklbw xmm3, xmm6 ; xmm3 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
+  pslldq xmm3, 4
+  psrldq xmm3, 4 ; xmm3 = [0|C|B|A]
 
-  punpckhbw xmm4, xmm6 ; xmm4 = [0|0|0|0|0|0|0|0 0|B3|0|G3|0|R3|0|A3]
+  movdqu xmm4, xmm3
+  punpcklbw xmm3, xmm6 ; [B|A]
+  punpckhbw xmm4, xmm6 ; [0|C]
 
-  paddw xmm3, xmm4     ; xmm3 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
+  paddw xmm3, xmm4 ; [B|A+C]
 
   ; sumo todos los resultados (res: xmm1)
   paddw xmm1, xmm2     ; xmm1 = [2B|2G|2R|2A 4B|4G|4R|4A]
@@ -185,3 +205,4 @@ ASM_blur1:
   ret
 
 _9: dd 9.0, 9.0, 9.0, 9.0
+_floor: dd 0x7F80
