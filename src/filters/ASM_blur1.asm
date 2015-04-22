@@ -10,7 +10,7 @@
 extern malloc
 extern free
 
-; gdb --args tp2 asm1 blur lenna.bmp blur1asm.bmp
+; gdb --args tp2 asm1 blur lena.bmp lenac.bmp
 ; ./diff -i blur1asm.bmp blurc.bmp 5
 
 ; rax, rbx*, rcx, rdx, rsi, rdi, rbp, rsp, r8 ...  R12*, R13*, R14*, R15*
@@ -41,17 +41,7 @@ ASM_blur1:
   mov r15, rax ; r15: temp row 0
 
   ; armar registro para dividir
-  pxor xmm6, xmm6   ; por alguna razon no puedo mover muchas veces _9
-  movss xmm6, [_9]  ; si lo hago xmm7 queda mal. primero lo copio y lo voy
-                    ; moviendo. debe ser porque al no tener el mismo size lo limpia
-  pxor   xmm7, xmm7 ; xmm7 = [9.0 | 9.0 | 9.0 | 9.0]
-  movss  xmm7, xmm6
-  pslldq xmm7, 4
-  movss  xmm7, xmm6
-  pslldq xmm7, 4
-  movss  xmm7, xmm6
-  pslldq xmm7, 4
-  movss  xmm7, xmm6
+  movdqu xmm7, [_9]
 
   pxor xmm6, xmm6  ; para desempaquetar
 
@@ -190,4 +180,4 @@ ASM_blur1:
   pop rbp
   ret
 
-_9: dd 9.0
+_9: dd 9.0, 9.0, 9.0, 9.0
