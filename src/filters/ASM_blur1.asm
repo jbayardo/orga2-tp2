@@ -10,8 +10,8 @@
 extern malloc
 extern free
 
-; gdb --args tp2 asm1 blur lena.bmp lenac.bmp
-; ./diff -i blur1asm.bmp blurc.bmp 5
+; gdb --args tp2 asm1 blur lena.bmp lenablurc.bmp
+; ./diff -i blur1asm.bmp lenablurc.bmp 5
 
 ; rax, rbx*, rcx, rdx, rsi, rdi, rbp, rsp, r8 ...  R12*, R13*, R14*, R15*
 ; void ASM_blur1( uint32_t w, uint32_t h, uint8_t* data )
@@ -46,7 +46,7 @@ ASM_blur1:
   ; para hacer round up o down.
   ; The default MXCSR value at reset is 1F80H.
   ; 0x7F80 para que rendondee hacia abajo.
-  ldmxcsr [_floor] ; reciclo memoria, necesito 32 bits.
+  ldmxcsr [_floor]
 
   ; armar registro para dividir
   movdqu xmm7, [_9]
