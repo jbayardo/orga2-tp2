@@ -92,9 +92,11 @@ ASM_blur1:
 
 .loop_columns:
 
- ; sumo la primera fila de pixeles (res: xmm1)
-  movdqu xmm1, [r15 + r8*SIZE_PIXEL] ; xmm1 = [B|G|R|A B|G|R|A B|G|R|A x|x|x|x]
-  psrldq xmm1, 4       ; xmm1 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+  ; sumo la primera fila de pixeles (res: xmm1)
+  movdqu xmm1, [r15 + r8*SIZE_PIXEL] ; xmm1 = [x|x|x|x B|G|R|A B|G|R|A B|G|R|A]
+
+  pslldq xmm1, 4
+  psrldq xmm1, 4
 
   movdqu xmm2, xmm1    ; xmm2 = xmm1
   punpcklbw xmm1, xmm6 ; xmm1 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
@@ -104,8 +106,10 @@ ASM_blur1:
   paddw xmm1, xmm2     ; xmm1 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
 
   ; sumo la segunda fila de pixeles (res: xmm2)
-  movdqu xmm2, [r14 + r8*SIZE_PIXEL]
-  psrldq xmm2, 4       ; xmm2 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+  movdqu xmm2, [r14 + r8*SIZE_PIXEL] ; xmm2 = [x|x|x|x B|G|R|A B|G|R|A B|G|R|A]
+
+  pslldq xmm2, 4
+  psrldq xmm2, 4
 
   movdqu xmm3, xmm2    ; xmm3 = xmm2
   punpcklbw xmm2, xmm6 ; xmm2 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
@@ -125,8 +129,8 @@ ASM_blur1:
                        ;             xmm1 = ZAAA
                        ;             xmm2 = ZBOB
                        ;             xmm3 = CCCZ y limpio con bitshift.
-  movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; xmm3 = [A|B|C|D], A es basura
-  pslldq xmm3, 4       ; xmm3 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+  movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; xmm3 = [D|C|B|A], A es basura
+  psrldq xmm3, 4       ; xmm3 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
                        ; tiro pixel basura
 
   movdqu xmm4, xmm3    ; xmm4 = xmm3
@@ -137,7 +141,7 @@ ASM_blur1:
   paddw xmm3, xmm4     ; xmm3 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
 
   ; sumo todos los resultados (res: xmm1)
-  paddw xmm1, xmm2
+  paddw xmm1, xmm2     ; xmm1 = [2B|2G|2R|2A 4B|4G|4R|4A]
   paddw xmm1, xmm3     ; xmm1 = [3B|3G|3R|3A 6B|6G|6R|6A]
   movdqu xmm2, xmm1    ; xmm2 = [3B|3G|3R|3A 6B|6G|6R|6A]
   psrldq xmm2, 8       ; xmm2 = [0|0|0|0     3B|3G|3R|3A]
