@@ -66,25 +66,25 @@ ASM_blur2:
       jge .endColumns
 
       movdqu xmm1, [rax] ; xmm1 = [P4 | P3 | P2 | P1]
-      movsd xmm2, xmm1   ; xmm2 = xmm1
+      movsd xmm2, xmm1   ; xmm2 = [0 | 0 | P2 | P1]
       punpckhbw xmm1, xmm15 ; xmm1 = [P4 | P3]
       punpcklbw xmm2, xmm15 ; xmm2 = [P2 | P1]
-      movsd xmm3, [rax + 4*4] ; xmm3 = [P6 | P5 | x | x]
-      punpckhbw xmm3, xmm15 ; xmm3 = [P6 | P5]
+      movsd xmm3, [rax + 4*4] ; xmm3 = [X | X | P6 | P5]
+      punpcklbw xmm3, xmm15 ; xmm3 = [P6 | P5]
 
       movdqu xmm4, [rax + r12*4]
       movsd xmm5, xmm4
       punpckhbw xmm4, xmm15
       punpcklbw xmm5, xmm15
       movsd xmm6, [rax + r12*4 + 4*4]
-      punpckhbw xmm6, xmm15
+      punpcklbw xmm6, xmm15
 
       movdqu xmm7, [rax + r12*8]
       movsd xmm8, xmm7
       punpckhbw xmm7, xmm15
       punpcklbw xmm8, xmm15
       movsd xmm9, [rax + r12*8 + 4*4]
-      punpckhbw xmm9, xmm15
+      punpcklbw xmm9, xmm15
 
       ; xmm1, xmm2 y xmm3 tienen cargados los 6 pixeles de la fila anterior
       ; xmm4, xmm5 y xmm6 tienen cargados los 6 pixeles de la fila actual
@@ -117,15 +117,15 @@ ASM_blur2:
       ; xmm3 = [P16 + P26 + P36 | P15 + P25 + P35] <- columnas 6 y 5
 
       movsd xmm5, xmm3
-      psrlw xmm3, 8
+      psrldq xmm3, 8
       movsd xmm6, xmm3
 
       movsd xmm3, xmm1
-      psrlw xmm1, 8
+      psrldq xmm1, 8
       movsd xmm4, xmm1
 
       movsd xmm1, xmm2
-      psrlw xmm2, 8
+      psrldq xmm2, 8
       ; En cada xmmY tengo xmmY = [0 | CY] como enteros en words
 
       paddw xmm1, xmm2
@@ -179,10 +179,10 @@ ASM_blur2:
       packuswb xmm4, xmm15
       ; Pasamos todos a ser 4 bytes de vuelta con saturación.
 
-      vmovss [rbx + r12*4 + 4], xmm1
-      vmovss [rbx + r12*4 + 4*2], xmm2
-      vmovss [rbx + r12*4 + 4*3], xmm3
-      vmovss [rbx + r12*4 + 4*4], xmm4
+      movd [rbx + r12*4 + 4], xmm1
+      movd [rbx + r12*4 + 4*2], xmm2
+      movd [rbx + r12*4 + 4*3], xmm3
+      movd [rbx + r12*4 + 4*4], xmm4
       ; Guardamos todo en memoria
 
       add rsi, 0x4
