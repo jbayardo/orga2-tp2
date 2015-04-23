@@ -19,12 +19,13 @@ ASM_blur2:
   push r15
   sub rsp, 8
 
-  mov r12, rdi ; r12 = w
-  mov r13, rsi ; r13 = h
+  mov r12d, edi ; r12 = w
+  mov r13d, esi ; r13 = h
   mov r14, rdx ; r14 = data
 
   mov rax, r12
   mul r13
+  shl rax, 2
 
   mov rdi, rax
   call malloc
@@ -39,17 +40,26 @@ ASM_blur2:
   dec r9       ; r9 = h-2
 
   pxor xmm15, xmm15
-
-  mov rdi, 0x1 ; rdi = rows
+  movdqu xmm14, [_9]
   mov rax, r14
   mov rbx, r15
 
+  mov rdi, 0x1 ; rdi = rows
   .loopRows:
     cmp rdi, r9
     jge .end
 
-    mov rsi, 0x1 ; rsi = columns
+    mov rcx, rax ; Guardo rax porque lo voy a sobrescribir
+    mov rax, rdi
+    dec rax
+    mul r12 ; rax = (rdi - 1)*r12*4 <- proxima fila, en la posición 0
+    shl rax, 2 ; Calculo el offset de movimiento en rax
 
+    mov rbx, r15
+    add rbx, rax
+    add rax, r14 ; Me corro a la proxima fila en rax y rbx
+
+    mov rsi, 0x1 ; rsi = columns
     .loopColumns:
       cmp rsi, r8
       jge .endColumns
@@ -61,14 +71,12 @@ ASM_blur2:
       movsd xmm3, [rax + 4*4] ; xmm3 = [P6 | P5 | x | x]
       punpckhbw xmm3, xmm15 ; xmm3 = [P6 | P5]
 
-
       movdqu xmm4, [rax + r12*4]
       movsd xmm5, xmm4
       punpckhbw xmm4, xmm15
       punpcklbw xmm5, xmm15
       movsd xmm6, [rax + r12*4 + 4*4]
       punpckhbw xmm6, xmm15
-
 
       movdqu xmm7, [rax + r12*8]
       movsd xmm8, xmm7
@@ -139,17 +147,23 @@ ASM_blur2:
       punpcklwd xmm4, xmm15
       ; Cada xmmY pasa a tener BGRA como enteros de 32 bits
 
-      cvtdq2ps xmm1
-      cvtdq2ps xmm2
-      cvtdq2ps xmm3
-      cvtdq2ps xmm4
+      cvtdq2ps xmm1, xmm1
+      cvtdq2ps xmm2, xmm2
+      cvtdq2ps xmm3, xmm3
+      cvtdq2ps xmm4, xmm4
       ; Convierto a float todos los BGRA
 
-      divps xmm1, [_9]
-      divps xmm2, [_9]
-      divps xmm3, [_9]
-      divps xmm4, [_9]
+      divps xmm1, xmm14
+      divps xmm2, xmm14
+      divps xmm3, xmm14
+      divps xmm4, xmm14
       ; Los dividi a todos por 9
+
+      cvtps2dq xmm1, xmm1
+      cvtps2dq xmm2, xmm2
+      cvtps2dq xmm3, xmm3
+      cvtps2dq xmm4, xmm4
+      ; Convierto los floats a enteros
 
       packusdw xmm1, xmm15
       packuswb xmm1, xmm15
@@ -164,36 +178,43 @@ ASM_blur2:
       packuswb xmm4, xmm15
       ; Pasamos todos a ser 4 bytes de vuelta con saturación.
 
-      movss [rbx + r12*4], xmm1
-      movss [rbx + r12*4 + 4*4], xmm2
-      movss [rbx + r12*4 + 4*4], xmm3
-      movss [rbx + r12*4 + 4*4], xmm4
+      vmovss [rbx + r12*4], xmm1
+      vmovss [rbx + r12*4 + 4*1], xmm2
+      vmovss [rbx + r12*4 + 4*2], xmm3
+      vmovss [rbx + r12*4 + 4*3], xmm4
       ; Guardamos todo en memoria
 
       add rsi, 0x4
       add rax, 4*4
       add rbx, 4*4
        ; Me adelanto 4 elementos
-      jmp .Columns
+      jmp .loopColumns
 
     ; NOTA: TODAVIA NO CONTEMPLE QUE PASA CUANDO NO PUEDO CARGAR ESA CANTIDAD
   .endColumns:
     inc rdi ; Incrementamos de fila
-
-    mov rcx, rax
-    mov rax, r12
-    mul rdi
-    lea rax, [rdi + rax*4]
-    ; Me corro a la proxima fila en rax
-
-    mov rdi, rbx
-    mov rax, r12
-    mul rdi
-    lea rbx, [rdi + rax*4]
-    ; Me corro a la proxima fila en rbx
-    jmp .loopColumns
+    jmp .loopRows
 
 .end:
+
+  ; Copiamos los datos a la matriz original
+  mov rax, r12
+  mul r13
+  shl rax, 2
+
+  mov rcx, 0x0
+.copyLoop:
+  cmp rcx, rax
+  je .endF
+
+  mov bl, [r15 + rcx]
+  mov [r14 + rcx], bl
+
+  inc rcx
+  jmp .copyLoop
+
+.endF:
+  ; TODO: Liberamos memoria
   add rsp, 8
   pop r15
   pop r14
