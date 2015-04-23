@@ -10,8 +10,8 @@
 extern malloc
 extern free
 
-; gdb --args tp2 asm1 blur lenna.bmp blur1asm.bmp
-; ./diff -i blur1asm.bmp blurc.bmp 5
+; gdb --args tp2 asm1 blur lena.bmp lenablurc.bmp
+; ./diff -i blur1asm.bmp lenablurc.bmp 5
 
 ; rax, rbx*, rcx, rdx, rsi, rdi, rbp, rsp, r8 ...  R12*, R13*, R14*, R15*
 ; void ASM_blur1( uint32_t w, uint32_t h, uint8_t* data )
@@ -40,18 +40,16 @@ ASM_blur1:
   call malloc  ; rax: pointer to temp row 0
   mov r15, rax ; r15: temp row 0
 
+  ; control reg MXCSR (10.2.3.1, vol 1)
+  ; controla el comportamiento de muchas instrucciones de SSE.
+  ; las conversiones de float a entero dependen de este registro,
+  ; para hacer round up o down.
+  ; The default MXCSR value at reset is 1F80H.
+  ; 0x7F80 para que rendondee hacia abajo.
+  ldmxcsr [_floor]
+
   ; armar registro para dividir
-  pxor xmm6, xmm6   ; por alguna razon no puedo mover muchas veces _9
-  movss xmm6, [_9]  ; si lo hago xmm7 queda mal. primero lo copio y lo voy
-                    ; moviendo. debe ser porque al no tener el mismo size lo limpia
-  pxor   xmm7, xmm7 ; xmm7 = [9.0 | 9.0 | 9.0 | 9.0]
-  movss  xmm7, xmm6
-  pslldq xmm7, 4
-  movss  xmm7, xmm6
-  pslldq xmm7, 4
-  movss  xmm7, xmm6
-  pslldq xmm7, 4
-  movss  xmm7, xmm6
+  movdqu xmm7, [_9]
 
   pxor xmm6, xmm6  ; para desempaquetar
 
@@ -102,9 +100,11 @@ ASM_blur1:
 
 .loop_columns:
 
- ; sumo la primera fila de pixeles (res: xmm1)
-  movdqu xmm1, [r15 + r8*SIZE_PIXEL] ; xmm1 = [B|G|R|A B|G|R|A B|G|R|A x|x|x|x]
-  psrldq xmm1, 4       ; xmm1 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+  ; sumo la primera fila de pixeles (res: xmm1)
+  movdqu xmm1, [r15 + r8*SIZE_PIXEL] ; xmm1 = [x|x|x|x B|G|R|A B|G|R|A B|G|R|A]
+
+  pslldq xmm1, 4
+  psrldq xmm1, 4
 
   movdqu xmm2, xmm1    ; xmm2 = xmm1
   punpcklbw xmm1, xmm6 ; xmm1 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
@@ -114,8 +114,10 @@ ASM_blur1:
   paddw xmm1, xmm2     ; xmm1 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
 
   ; sumo la segunda fila de pixeles (res: xmm2)
-  movdqu xmm2, [r14 + r8*SIZE_PIXEL]
-  psrldq xmm2, 4       ; xmm2 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+  movdqu xmm2, [r14 + r8*SIZE_PIXEL] ; xmm2 = [x|x|x|x B|G|R|A B|G|R|A B|G|R|A]
+
+  pslldq xmm2, 4
+  psrldq xmm2, 4
 
   movdqu xmm3, xmm2    ; xmm3 = xmm2
   punpcklbw xmm2, xmm6 ; xmm2 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
@@ -125,29 +127,41 @@ ASM_blur1:
   paddw xmm2, xmm3     ; xmm1 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
 
   ; sumo la tercera fila de pixeles (res: xmm3)
+  ; mov r9, rdi
+  ; add r9, rbx          ; agrego una fila al contador de pixeles
+  ; dec r9               ; arranco un pixel antes en xmm3 para evitar el segfault al final
+  ;                      ; e.g. XAAA   xmm1 = ZAAA
+  ;                      ;      ZBOB   xmm2 = ZBOB
+  ;                      ;      ZCCCS  xmm3 = SCCC
+  ;                      ; entonces lo que hago es:
+  ;                      ;             xmm1 = ZAAA
+  ;                      ;             xmm2 = ZBOB
+  ;                      ;             xmm3 = CCCZ y limpio con bitshift.
+  ; movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; xmm3 = [D|C|B|A], A es basura
+  ; psrldq xmm3, 4       ; xmm3 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
+  ;                      ; tiro pixel basura
+
+  ; movdqu xmm4, xmm3    ; xmm4 = xmm3
+  ; punpcklbw xmm3, xmm6 ; xmm3 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
+  ; punpckhbw xmm4, xmm6 ; xmm4 = [0|0|0|0|0|0|0|0 0|B3|0|G3|0|R3|0|A3]
+  ; paddw xmm3, xmm4     ; xmm3 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
+
+  ; sumo la tercera fila (sin 'hack', da igual)
   mov r9, rdi
-  add r9, rbx          ; agrego una fila al contador de pixeles
-  dec r9               ; arranco un pixel antes en xmm3 para evitar el segfault al final
-                       ; e.g. XAAA   xmm1 = ZAAA
-                       ;      ZBOB   xmm2 = ZBOB
-                       ;      ZCCCS  xmm3 = SCCC
-                       ; entonces lo que hago es:
-                       ;             xmm1 = ZAAA
-                       ;             xmm2 = ZBOB
-                       ;             xmm3 = CCCZ y limpio con bitshift.
-  movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; xmm3 = [A|B|C|D], A es basura
-  pslldq xmm3, 4       ; xmm3 = [0|0|0|0 B3|G3|R3|A3 B2|G2|R2|A2 B1|G1|R1|A1]
-                       ; tiro pixel basura
+  add r9, rbx
+  movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; [D|C|B|A]
 
-  movdqu xmm4, xmm3    ; xmm4 = xmm3
-  punpcklbw xmm3, xmm6 ; xmm3 = [0|B2|0|G2|0|R2|0|A2 0|B1|0|G1|0|R1|0|A1]
+  pslldq xmm3, 4
+  psrldq xmm3, 4 ; xmm3 = [0|C|B|A]
 
-  punpckhbw xmm4, xmm6 ; xmm4 = [0|0|0|0|0|0|0|0 0|B3|0|G3|0|R3|0|A3]
+  movdqu xmm4, xmm3
+  punpcklbw xmm3, xmm6 ; [B|A]
+  punpckhbw xmm4, xmm6 ; [0|C]
 
-  paddw xmm3, xmm4     ; xmm3 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
+  paddw xmm3, xmm4 ; [B|A+C]
 
   ; sumo todos los resultados (res: xmm1)
-  paddw xmm1, xmm2
+  paddw xmm1, xmm2     ; xmm1 = [2B|2G|2R|2A 4B|4G|4R|4A]
   paddw xmm1, xmm3     ; xmm1 = [3B|3G|3R|3A 6B|6G|6R|6A]
   movdqu xmm2, xmm1    ; xmm2 = [3B|3G|3R|3A 6B|6G|6R|6A]
   psrldq xmm2, 8       ; xmm2 = [0|0|0|0     3B|3G|3R|3A]
@@ -190,4 +204,5 @@ ASM_blur1:
   pop rbp
   ret
 
-_9: dd 9.0
+_9: dd 9.0, 9.0, 9.0, 9.0
+_floor: dd 0x7F80
