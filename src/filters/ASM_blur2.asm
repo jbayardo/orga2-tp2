@@ -39,6 +39,7 @@ ASM_blur2:
   dec r9
   dec r9       ; r9 = h-2
 
+  ldmxcsr [_floor]
   pxor xmm15, xmm15
   movdqu xmm14, [_9]
   mov rax, r14
@@ -178,10 +179,10 @@ ASM_blur2:
       packuswb xmm4, xmm15
       ; Pasamos todos a ser 4 bytes de vuelta con saturación.
 
-      vmovss [rbx + r12*4], xmm1
-      vmovss [rbx + r12*4 + 4*1], xmm2
-      vmovss [rbx + r12*4 + 4*2], xmm3
-      vmovss [rbx + r12*4 + 4*3], xmm4
+      vmovss [rbx + r12*4 + 4], xmm1
+      vmovss [rbx + r12*4 + 4*2], xmm2
+      vmovss [rbx + r12*4 + 4*3], xmm3
+      vmovss [rbx + r12*4 + 4*4], xmm4
       ; Guardamos todo en memoria
 
       add rsi, 0x4
@@ -225,3 +226,4 @@ ASM_blur2:
   ret
 
 _9: dd 9.0, 9.0, 9.0, 9.0
+_floor: dd 0x7F80

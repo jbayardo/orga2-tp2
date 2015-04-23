@@ -31,7 +31,7 @@ ASM_hsl2:
   mov r12d, edi ; r12 = w
   mov r13d, esi ; r13 = h
   mov r14, rdx  ; r14 = data
-  
+
   mov r12d, r12d ; limpio la parte alta
   mov r13d, r13d ; de estos registros
 
@@ -42,10 +42,10 @@ ASM_hsl2:
                  ; lo voy a usar para llamar a las funciones conversoras
 
 
-  mov rax, r12 
+  mov rax, r12
   mul r13        ; rax = h*w (suponiendo que no hay overflow)
   mov r15, rax   ; r15 = h*w
-  
+
   mov rcx, 0     ; iterador
 
 ;;;; genero el vector que le voy a sumar, que tiene que ser de la pinta
@@ -56,7 +56,7 @@ ASM_hsl2:
   movss xmm4, xmm1
   pslldq xmm4, 4
   movss xmm4, xmm0
-  pslldq xmm4, 4 
+  pslldq xmm4, 4
 ;;;; xmm4 = [ll | ss | hh | 00]
 
   movups xmm7, [_1111]   ; xmm7 = [1 | 1 | 1 | 1]
@@ -76,10 +76,10 @@ ASM_hsl2:
   ; ahora en rbx tengo 4 floats, que representan la transparencia, H, S, L
   ; en realidad, xmm3
   movups xmm3, [rbx]   ; xmn3 = [L|L|L|L | S|S|S|S | H|H|H|H | A|A|A|A]
-  addps xmm3, xmm4     ; xmm3 = [l + LL | s + SS | h + HH | a + 00] 
+  addps xmm3, xmm4     ; xmm3 = [l + LL | s + SS | h + HH | a + 00]
 
   ;; Ahora tengo que hacer los if's. Para eso voy a usar dos registros
-  ;; xmm5 = [ 1-(l+LL) | 1-(s+SS) | -360 | 0] 
+  ;; xmm5 = [ 1-(l+LL) | 1-(s+SS) | -360 | 0]
   ;; xmm6 = [ -(l+LL)  | -(s+SS)  | 360  | 0]
   ;; notar que basta seleccionar cuales quiero usar (haciendo and) y sumandolos
 
@@ -97,18 +97,18 @@ ASM_hsl2:
   psrldq xmm6, 4       ; xmm5 = [0        | -(l+LL)  | -(s+SS)  | -(h+HH) ]
   movss xmm6, xmm10    ; xmm5 = [0        | -(l+LL)  | -(s+SS)  | -360    ]
   pslldq xmm6, 4       ; xmm5 = [-(l+LL)  | -(s+SS)  | -360     | 0       ]
-  
-  ;; ahora tengo que comparar con los vectores 
+
+  ;; ahora tengo que comparar con los vectores
   ;; [1 | 1 | 360 | 256] = xmm12
   ;; [0 | 0 | 0   | 0  ] = xmm13
 
   movaps xmm12, xmm7   ; xmm7 = [1 | 1 | 1 | 1]
-  movss xmm12, xmm9    ; xmm7 = [1 | 1 | 1 | 360] 
+  movss xmm12, xmm9    ; xmm7 = [1 | 1 | 1 | 360]
   pslldq xmm12, 4      ; xmm7 = [1 | 1 | 360 | 0]
   movss xmm12, xmm11   ; xmm7 = [1 | 1 | 360 | 256]
 
   pxor xmm13, xmm13    ; xmm13 = [0 | 0 | 0 | 0]
-  
+
 
   cmpltps xmm12, xmm3 ; xmm12 = 1 o 0 dependiendo
   cmpnltps xmm13, xmm3  ; xmm13 = 1 o 0 dependiendo
@@ -122,8 +122,8 @@ ASM_hsl2:
 
   movups [rbx], xmm3  ; lo guardo en mi posicion de memoria
   mov rdi, rbx
-  lea rsi, [r14 + 4*rcx] 
-  
+  lea rsi, [r14 + 4*rcx]
+
   push rcx
   sub rsp, 8
   call hslTOrgb
@@ -163,15 +163,15 @@ rgbTOhsl:
 
   cvtdq2ps xmm12, xmm12   ; (float) xmm12 = [0|0|0|B|0|0|0|G|0|0|0|B|0|0|0|A]
 
-  mov xmm0, xmm12
-  mov xmm1, xmm12
-  mov xmm2, xmm12
-  
+  ;mov xmm0, xmm12
+  ;mov xmm1, xmm12
+  ;mov xmm2, xmm12
+
   psrldq xmm0, 4
   psrldq xmm1, 8
   psrldq xmm2, 12
 
-  movps xmm14, xmm0
+  ;movps xmm14, xmm0
 
   maxss xmm0, xmm1
   maxss xmm0, xmm2    ; xmm0 = max
@@ -181,7 +181,7 @@ rgbTOhsl:
 
 
 
-  
+
 
 
 
