@@ -45,19 +45,16 @@ ASM_merge2:
   pslldq xmm3, 4       ; xmm3 =  0 | value | value | 0
   addss xmm3, xmm0     ; xmm3 =  0 | value | value | value
   pslldq xmm3, 4       ; xmm3 =  value | value | value | 0
-  ;addss xmm3, xmm5     ; xmm3 =  value | value | value | 1.0
-  mulps xmm3, xmm1     ; xmm3 = 256*value | 256*value | 256*value | 0.0
+  addss xmm3, xmm5     ; xmm3 =  value | value | value | 1.0
+  mulps xmm3, xmm1     ; xmm3 = 256*value | 256*value | 256*value | 1.0
   
-  cvtps2dq xmm3, xmm3  ; (int32) xmm3 = 256*value | 256*value | 256*value | 256.0
-  packuswb xmm3, xmm3  ; (int16) xmm3 = 256*value | 256*value | 256*value | 256 | 256*value | 256*value | 256*value | 256 
+  cvtps2dq xmm3, xmm3  ; (int32) xmm3 = 256*value | 256*value | 256*value | 256
+  packuswb xmm3, xmm3  ; (int16) xmm3 = 256*value | 256*value | 256*value | 256 | 256*value | 256*value | 256*value | 256
   ; la instruccion de arriba es exactamente lo que quiero
 
   
 
-  ;movdqu xmm4, [_muchos256ints]  ; (int16) xmm4 =  256 | 256 | 256 | 256 | 256 | 256 | 256 | 256
-  ;psubw xmm4, xmm3              ; (int16) xmm4 = 256*(1-value) | 256*(1-value) | 256*(1-value) | 0 | 256*(1-value) | 256*(1-value) | 256*(1-value) | 0 
-  ;movdqu xmm6, [_todo1]
-  pxor xmm4, xmm4
+  movdqu xmm4, [_muchos256ints]  ; (int16) xmm4 =  256 | 256 | 256 | 256 | 256 | 256 | 256 | 256
   movdqa xmm6, xmm3
   psubw xmm4, xmm6
   ;movdqu xmm6, [_11111111]
