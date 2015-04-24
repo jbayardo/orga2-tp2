@@ -24,17 +24,14 @@ ASM_blur2:
   mov r13d, esi       ; r13 = h
   mov r14, rdx        ; r14 = data
 
-  mov r8, r12
-  shl r8, 2           ; r8 = w*4
-
-  push r8             ; Creamos el storage adicional temporal para la matriz
-  mov rdi, r8
+  shl rdi, 2           ; rdi = w*4
+  mov r15, rdi         ; Creamos el storage adicional temporal para la matriz
   call malloc
-  pop rdi
-  push rax
+  mov rdi, r15
+  mov r15, rax
   call malloc
   mov r11, rax        ; r11 = m_row_1
-  pop r10             ; r10 = m_row_0
+  mov r10, r15        ; r10 = m_row_0
 
   mov r9, 0x0         ; Cargamos los datos de la primera fila
 .copyFirstRow:
@@ -49,12 +46,14 @@ ASM_blur2:
 
 .endCopyFirstRow:
   mov r8, r12
-  dec r8              ; r8 = w-1
+  dec r8
+  dec r8
+  dec r8              ; r8 = w-3
 
   mov r9, r13
   dec r9              ; r9 = h-1
 
-  ldmxcsr [_floor]    ; Ponemos a las operaciones de SSE para hacer flooor
+  ldmxcsr [_floor]    ; Ponemos a las operaciones de SSE para hacer floor
   pxor xmm15, xmm15   ; Preparamos el registro de 0
   movdqu xmm14, [_9]  ; Preparamos el registro para dividir
 
@@ -63,17 +62,17 @@ ASM_blur2:
     cmp rdi, r9
     jge .end
 
+    mov rax, r10
+    mov r10, r11
+    mov r11, rax      ; swap(m_row_0, m_row_1)
+
     mov rax, rdi
     dec rax
     mul r12           ; rax = (rdi - 1)*r12*4 <- proxima fila, en la posición 0
     shl rax, 2        ; Calculo el offset de movimiento en rax
     add rax, r14      ; Me corro a la proxima fila en rax
 
-    push r10
-    mov r10, r11
-    pop r11           ; swap(m_row_0, m_row_1)
-
-    mov rdx, 0x0
+    xor rdx, rdx
     .copyRow:
       cmp rdx, r12
       jge .copyRowEnd
@@ -85,31 +84,40 @@ ASM_blur2:
       jmp .copyRow
 
   .copyRowEnd:
-
     mov rsi, 0x1 ; rsi = columns
     .loopColumns:
+      mov rbx, rsi
+      dec rbx
+      sub rbx, r8
+      cmp rbx, 0x0
+      jl .loopColumnsSkip
+
+      sub rsi, 0x2
+      sub rax, 4*2
+
+    .loopColumnsSkip:
       cmp rsi, r8
       jge .endColumns
 
-      movdqu xmm1, [r10 + rsi*4]      ; xmm1 = [P4 | P3 | P2 | P1]
-      movsd xmm2, xmm1        ; xmm2 = [0 | 0 | P2 | P1]
-      punpckhbw xmm1, xmm15   ; xmm1 = [P4 | P3]
-      punpcklbw xmm2, xmm15   ; xmm2 = [P2 | P1]
-      movsd xmm3, [r10 + rsi*4 + 4*4] ; xmm3 = [X | X | P6 | P5]
-      punpcklbw xmm3, xmm15   ; xmm3 = [P6 | P5]
+      movdqu xmm1, [r10 + rsi*4 - 4]      ; xmm1 = [P4 | P3 | P2 | P1]
+      movsd xmm2, xmm1                    ; xmm2 = [0 | 0 | P2 | P1]
+      punpckhbw xmm1, xmm15               ; xmm1 = [P4 | P3]
+      punpcklbw xmm2, xmm15               ; xmm2 = [P2 | P1]
+      movsd xmm3, [r10 + rsi*4 + 4*3]     ; xmm3 = [X | X | P6 | P5]
+      punpcklbw xmm3, xmm15               ; xmm3 = [P6 | P5]
 
-      movdqu xmm4, [r11 + rsi*4]
+      movdqu xmm4, [r11 + rsi*4 - 4]
       movsd xmm5, xmm4
       punpckhbw xmm4, xmm15
       punpcklbw xmm5, xmm15
-      movsd xmm6, [r11 + rsi*4 + 4*4]
+      movsd xmm6, [r11 + rsi*4 + 4*3]
       punpcklbw xmm6, xmm15
 
       movdqu xmm7, [rax + r12*4*2]
       movsd xmm8, xmm7
       punpckhbw xmm7, xmm15
       punpcklbw xmm8, xmm15
-      movsd xmm9, [rax + r12*8 + 4*4]
+      movsd xmm9, [rax + r12*4*2 + 4*4]
       punpcklbw xmm9, xmm15
 
       ; xmm1 = [P14 | P13]
@@ -210,9 +218,6 @@ ASM_blur2:
       add rsi, 0x4  ; Me adelanto 4 elementos
       add rax, 4*4
       jmp .loopColumns
-
-    ; NOTA: TODAVIA NO CONTEMPLE QUE PASA CUANDO NO PUEDO CARGAR ESA CANTIDAD
-    ; Cuando no puedo, tengo que restar 2 y hacer un loop de mas
   .endColumns:
     inc rdi ; Incrementamos de fila
     jmp .loopRows
