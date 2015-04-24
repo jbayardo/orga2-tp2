@@ -67,7 +67,7 @@ ASM_blur2:
     mov r11, rax      ; swap(m_row_0, m_row_1)
 
     mov rax, rdi
-    dec rax
+    ; dec rax Martin: Lo saque para que no promedie dos veces la misma fila!
     mul r12           ; rax = (rdi - 1)*r12*4 <- proxima fila, en la posición 0
     shl rax, 2        ; Calculo el offset de movimiento en rax
     add rax, r14      ; Me corro a la proxima fila en rax
@@ -84,6 +84,13 @@ ASM_blur2:
       jmp .copyRow
 
   .copyRowEnd:
+    ; Martin: Fix asqueroso, para no tener que cambiar todos los contadores y redireccionamientos.
+    mov rax, rdi
+    dec rax
+    mul r12           ; rax = (rdi - 1)*r12*4 <- proxima fila, en la posición 0
+    shl rax, 2        ; Calculo el offset de movimiento en rax
+    add rax, r14      ; Me corro a la proxima fila en rax
+
     mov rsi, 0x1 ; rsi = columns
     .loopColumns:
       mov rbx, rsi
