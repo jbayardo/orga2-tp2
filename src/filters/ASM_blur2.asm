@@ -85,6 +85,7 @@ ASM_blur2:
 
   .copyRowEnd:
     ; Martin: Fix asqueroso, para no tener que cambiar todos los contadores y redireccionamientos.
+    ; Volvemos a calcular el índice
     mov rax, rdi
     dec rax
     mul r12           ; rax = (rdi - 1)*r12*4 <- proxima fila, en la posición 0
@@ -93,11 +94,8 @@ ASM_blur2:
 
     mov rsi, 0x1 ; rsi = columns
     .loopColumns:
-      mov rbx, rsi
-      dec rbx
-      sub rbx, r8
-      cmp rbx, 0x0
-      jl .loopColumnsSkip
+      cmp r8, rsi
+      jne .loopColumnsSkip
 
       sub rsi, 0x2
       sub rax, 4*2

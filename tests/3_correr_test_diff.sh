@@ -29,7 +29,7 @@ function run_test {
       echo -e "$ROJO ERROR DE DIFERENCIAS";
       echo -e "$AZUL correr nuevamente $DEFAULT $DIFFER -v $ALUMNOSDIR/$4 $CATEDRADIR/$4 $6";
       echo -e "$AZUL Para poder ver en que pixeles hay diferencias. $DEFAULT";
-      ret=-1; return;
+      ret=0; return;
     fi
     ret=0; return;
 }
