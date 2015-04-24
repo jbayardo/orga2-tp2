@@ -6,6 +6,7 @@
 ; ************************************************************************* ;
 
 extern malloc
+extern free
 
 ; void ASM_blur2( uint32_t w, uint32_t h, uint8_t* data )
 global ASM_blur2
@@ -32,12 +33,12 @@ ASM_blur2:
   mov r15, rax ; r15 = data'
 
   mov r8, r12
-  dec r8
-  dec r8       ; r8 = w-2
+  ;dec r8
+  dec r8       ; r8 = w-1
 
   mov r9, r13
-  dec r9
-  dec r9       ; r9 = h-2
+  ;dec r9
+  dec r9       ; r9 = h-1
 
   ldmxcsr [_floor]
   pxor xmm15, xmm15
@@ -45,14 +46,13 @@ ASM_blur2:
   mov rax, r14
   mov rbx, r15
 
-  mov rdi, 0x1 ; rdi = rows
+  mov rdi, 0x0 ; rdi = rows
   .loopRows:
     cmp rdi, r9
     jge .end
 
-    mov rcx, rax ; Guardo rax porque lo voy a sobrescribir
     mov rax, rdi
-    dec rax
+    ;dec rax
     mul r12 ; rax = (rdi - 1)*r12*4 <- proxima fila, en la posición 0
     shl rax, 2 ; Calculo el offset de movimiento en rax
 
@@ -60,7 +60,7 @@ ASM_blur2:
     add rbx, rax
     add rax, r14 ; Me corro a la proxima fila en rax y rbx
 
-    mov rsi, 0x1 ; rsi = columns
+    mov rsi, 0x0 ; rsi = columns
     .loopColumns:
       cmp rsi, r8
       jge .endColumns
@@ -198,6 +198,21 @@ ASM_blur2:
 
 .end:
 
+  ; Copiamos el borde a la matriz nueva
+  inc r8
+  inc r9
+
+  xor rdi, rdi
+  ; rdi = columns
+.copyBorder:
+  cmp rdi, r8
+
+  xor rsi, rsi
+  .copyBorderRows:
+    ; Terminar de copiar el borde
+    cmp rsi, r9
+    inc rsi
+
   ; Copiamos los datos a la matriz original
   mov rax, r12
   mul r13
@@ -215,7 +230,9 @@ ASM_blur2:
   jmp .copyLoop
 
 .endF:
-  ; TODO: Liberamos memoria
+  mov rdi, r15
+  call free
+
   add rsp, 8
   pop r15
   pop r14
