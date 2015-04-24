@@ -14,7 +14,8 @@ ASM_merge1:
   push r13
   push r14
   push r15
-
+  
+  ldmxcsr [_floor]
 
                 ; xmm0 = value
   mov r12d, edi ; r12 = w
@@ -99,5 +100,4 @@ ASM_merge1:
   ret
 
 _1: dd 1.0
-
-
+_floor: dd 0x7F80
