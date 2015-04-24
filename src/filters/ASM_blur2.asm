@@ -20,75 +20,97 @@ ASM_blur2:
   push r15
   sub rsp, 8
 
-  mov r12d, edi ; r12 = w
-  mov r13d, esi ; r13 = h
-  mov r14, rdx ; r14 = data
-
-  mov rax, r12
-  mul r13
-  shl rax, 2
-
-  mov rdi, rax
-  call malloc
-  mov r15, rax ; r15 = data'
+  mov r12d, edi       ; r12 = w
+  mov r13d, esi       ; r13 = h
+  mov r14, rdx        ; r14 = data
 
   mov r8, r12
-  ;dec r8
-  dec r8       ; r8 = w-1
+  shl r8, 2           ; r8 = w*4
+
+  push r8             ; Creamos el storage adicional temporal para la matriz
+  mov rdi, r8
+  call malloc
+  pop rdi
+  push rax
+  call malloc
+  mov r11, rax        ; r11 = m_row_1
+  pop r10             ; r10 = m_row_0
+
+  mov r9, 0x0         ; Cargamos los datos de la primera fila
+.copyFirstRow:
+    cmp r9, r12
+    jge .endCopyFirstRow
+
+    movdqu xmm0, [r14 + 4*r9]
+    movdqu [r11 + 4*r9], xmm0
+
+    add r9, 0x4
+    jmp .copyFirstRow
+
+.endCopyFirstRow:
+  mov r8, r12
+  dec r8              ; r8 = w-1
 
   mov r9, r13
-  ;dec r9
-  dec r9       ; r9 = h-1
+  dec r9              ; r9 = h-1
 
-  ldmxcsr [_floor]
-  pxor xmm15, xmm15
-  movdqu xmm14, [_9]
-  mov rax, r14
-  mov rbx, r15
+  ldmxcsr [_floor]    ; Ponemos a las operaciones de SSE para hacer flooor
+  pxor xmm15, xmm15   ; Preparamos el registro de 0
+  movdqu xmm14, [_9]  ; Preparamos el registro para dividir
 
-  mov rdi, 0x0 ; rdi = rows
+  mov rdi, 0x1        ; rdi = rows
   .loopRows:
     cmp rdi, r9
     jge .end
 
     mov rax, rdi
-    ;dec rax
-    mul r12 ; rax = (rdi - 1)*r12*4 <- proxima fila, en la posición 0
-    shl rax, 2 ; Calculo el offset de movimiento en rax
+    dec rax
+    mul r12           ; rax = (rdi - 1)*r12*4 <- proxima fila, en la posición 0
+    shl rax, 2        ; Calculo el offset de movimiento en rax
+    add rax, r14      ; Me corro a la proxima fila en rax
 
-    mov rbx, r15
-    add rbx, rax
-    add rax, r14 ; Me corro a la proxima fila en rax y rbx
+    push r10
+    mov r10, r11
+    pop r11           ; swap(m_row_0, m_row_1)
 
-    mov rsi, 0x0 ; rsi = columns
+    mov rdx, 0x0
+    .copyRow:
+      cmp rdx, r12
+      jge .copyRowEnd
+
+      movdqu xmm0, [rax + rdx*4]
+      movdqu [r11 + rdx*4], xmm0
+
+      add rdx, 0x4
+      jmp .copyRow
+
+  .copyRowEnd:
+
+    mov rsi, 0x1 ; rsi = columns
     .loopColumns:
       cmp rsi, r8
       jge .endColumns
 
-      movdqu xmm1, [rax] ; xmm1 = [P4 | P3 | P2 | P1]
-      movsd xmm2, xmm1   ; xmm2 = [0 | 0 | P2 | P1]
-      punpckhbw xmm1, xmm15 ; xmm1 = [P4 | P3]
-      punpcklbw xmm2, xmm15 ; xmm2 = [P2 | P1]
-      movsd xmm3, [rax + 4*4] ; xmm3 = [X | X | P6 | P5]
-      punpcklbw xmm3, xmm15 ; xmm3 = [P6 | P5]
+      movdqu xmm1, [r10 + rsi*4]      ; xmm1 = [P4 | P3 | P2 | P1]
+      movsd xmm2, xmm1        ; xmm2 = [0 | 0 | P2 | P1]
+      punpckhbw xmm1, xmm15   ; xmm1 = [P4 | P3]
+      punpcklbw xmm2, xmm15   ; xmm2 = [P2 | P1]
+      movsd xmm3, [r10 + rsi*4 + 4*4] ; xmm3 = [X | X | P6 | P5]
+      punpcklbw xmm3, xmm15   ; xmm3 = [P6 | P5]
 
-      movdqu xmm4, [rax + r12*4]
+      movdqu xmm4, [r11 + rsi*4]
       movsd xmm5, xmm4
       punpckhbw xmm4, xmm15
       punpcklbw xmm5, xmm15
-      movsd xmm6, [rax + r12*4 + 4*4]
+      movsd xmm6, [r11 + rsi*4 + 4*4]
       punpcklbw xmm6, xmm15
 
-      movdqu xmm7, [rax + r12*8]
+      movdqu xmm7, [rax + r12*4*2]
       movsd xmm8, xmm7
       punpckhbw xmm7, xmm15
       punpcklbw xmm8, xmm15
       movsd xmm9, [rax + r12*8 + 4*4]
       punpcklbw xmm9, xmm15
-
-      ; xmm1, xmm2 y xmm3 tienen cargados los 6 pixeles de la fila anterior
-      ; xmm4, xmm5 y xmm6 tienen cargados los 6 pixeles de la fila actual
-      ; xmm7, xmm8 y xmm9 tienen cargados los 6 pixeles de la fila siguiente
 
       ; xmm1 = [P14 | P13]
       ; xmm2 = [P12 | P11]
@@ -179,58 +201,29 @@ ASM_blur2:
       packuswb xmm4, xmm15
       ; Pasamos todos a ser 4 bytes de vuelta con saturación.
 
-      movd [rbx + r12*4 + 4], xmm1
-      movd [rbx + r12*4 + 4*2], xmm2
-      movd [rbx + r12*4 + 4*3], xmm3
-      movd [rbx + r12*4 + 4*4], xmm4
+      movd [rax + r12*4 + 4], xmm1
+      movd [rax + r12*4 + 4*2], xmm2
+      movd [rax + r12*4 + 4*3], xmm3
+      movd [rax + r12*4 + 4*4], xmm4
       ; Guardamos todo en memoria
 
-      add rsi, 0x4
+      add rsi, 0x4  ; Me adelanto 4 elementos
       add rax, 4*4
-      add rbx, 4*4
-       ; Me adelanto 4 elementos
       jmp .loopColumns
 
     ; NOTA: TODAVIA NO CONTEMPLE QUE PASA CUANDO NO PUEDO CARGAR ESA CANTIDAD
+    ; Cuando no puedo, tengo que restar 2 y hacer un loop de mas
   .endColumns:
     inc rdi ; Incrementamos de fila
     jmp .loopRows
 
 .end:
+  push r11
+  mov rdi, r10
+  call free
+  pop r11
 
-  ; Copiamos el borde a la matriz nueva
-  inc r8
-  inc r9
-
-  xor rdi, rdi
-  ; rdi = columns
-.copyBorder:
-  cmp rdi, r8
-
-  xor rsi, rsi
-  .copyBorderRows:
-    ; Terminar de copiar el borde
-    cmp rsi, r9
-    inc rsi
-
-  ; Copiamos los datos a la matriz original
-  mov rax, r12
-  mul r13
-  shl rax, 2
-
-  mov rcx, 0x0
-.copyLoop:
-  cmp rcx, rax
-  je .endF
-
-  mov bl, [r15 + rcx]
-  mov [r14 + rcx], bl
-
-  inc rcx
-  jmp .copyLoop
-
-.endF:
-  mov rdi, r15
+  mov rdi, r11
   call free
 
   add rsp, 8
@@ -242,5 +235,6 @@ ASM_blur2:
   pop rbp
   ret
 
+align 16
 _9: dd 9.0, 9.0, 9.0, 9.0
 _floor: dd 0x7F80
