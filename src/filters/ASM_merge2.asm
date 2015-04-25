@@ -15,7 +15,7 @@ ASM_merge2:
   push r14
   push r15
 
-  ldmxcsr [_floor]
+  ;ldmxcsr [_floor]
                 ; xmm0 = value
   mov r12d, edi ; r12 = w
   mov r13d, esi ; r13 = h
@@ -34,9 +34,6 @@ ASM_merge2:
   movss xmm5, [_1]
 
   movups xmm1, [_muchos256]
-  ;mulss xmm0, xmm1    
-  ;cvtss2si xmm0, xmm0
-
   
   pxor xmm3, xmm3      ; xmm3 =  0 | 0 | 0 | 0
   addss xmm3, xmm0     ; xmm3 =  0 | 0 | 0 | value
@@ -55,10 +52,7 @@ ASM_merge2:
   
 
   movdqu xmm4, [_muchos256ints]  ; (int16) xmm4 =  256 | 256 | 256 | 256 | 256 | 256 | 256 | 256
-  movdqa xmm6, xmm3
-  psubw xmm4, xmm6
-  ;movdqu xmm6, [_11111111]
-  ;paddw xmm4, xmm6
+  psubw xmm4, xmm3
 
   pxor xmm6, xmm6      ; xmm6 = 0
   ;;;;;;;;
@@ -77,34 +71,35 @@ ASM_merge2:
   punpcklbw xmm1, xmm6     ; xmm1 =  [0|B|0|G|0|R|0|A | 0|B|0|G|0|R|0|A] 
   punpcklbw xmm2, xmm6     ; xmm2 =  [0|B|0|G|0|R|0|A | 0|B|0|G|0|R|0|A] 
 
-  pmullw xmm1, xmm3         ; xmm1  = [B*v|G*v|R*v|A*1 |   lo mismo aca ] 
+  pmullw xmm1, xmm3         ; xmm1  = [B*v|G*v|R*v|A*1 | lo mismo aca ] 
   ;no me importa la parte alta
-  pmullw xmm2, xmm4          ; ; xmm1  = [B*(1-v)|G*(1-v)|R*(1-v)|A*1 |   lo mismo aca ]
+  pmullw xmm2, xmm4         ; xmm1  = [B*(1-v)|G*(1-v)|R*(1-v)|A*1 | lo mismo aca ]
   ;no me importa la parte alta
    
 
-  psraw xmm1, 8            ; divido por 256;
-  psraw xmm2, 8            ; divido por 256;
+  psrlw xmm1, 8            ; divido por 256;
+  psrlw xmm2, 8            ; divido por 256;
   
 
   paddw xmm1, xmm2       ; (uint32_t) xmm1 = [B1+B2|G1+G2|R1+R2|A]
   
   packuswb xmm1, xmm1      ; xmm1 = [0|0|0|0|0|0|0|0 | B|G|R|A~|B|G|R|A~]
   
-  movdqa xmm5, xmm10
-  pslldq xmm5, 15
-  psrldq xmm5, 15
-  paddb xmm1, xmm5
-  movdqa xmm5, xmm10
-  pslldq xmm5, 11
-  psrldq xmm5, 15
-  pslldq xmm5, 4
-  paddb xmm1, xmm5
+  ;movdqa xmm5, xmm10
+  ;pslldq xmm5, 15
+  ;psrldq xmm5, 15
+  ;paddb xmm1, xmm5
+  ;movdqa xmm5, xmm10
+  ;pslldq xmm5, 11
+  ;psrldq xmm5, 15
+  ;pslldq xmm5, 4
+  ;paddb xmm1, xmm5
 
 
-  movss [r14 + rbx], xmm1  ; lo guardo de nuevo en memoria
+  movsd [r14 + rbx], xmm1  ; lo guardo de nuevo en memoria
 
-  add rbx, 4
+  add rbx, 8
+  inc rcx
   inc rcx
 
   jmp .loop
@@ -122,4 +117,4 @@ _muchos256: dd 256.0, 256.0, 256.0, 256.0
 _muchos256ints: dw 256, 256, 256, 256, 256, 256, 256, 256
 _11111111: dw 1, 1, 1, 1, 1, 1, 1, 1
 _floor: dd 0x7F80
-_todo1: dw 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+

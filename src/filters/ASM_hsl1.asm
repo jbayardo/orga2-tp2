@@ -24,6 +24,9 @@ ASM_hsl1:
   push r15
   sub rsp, 8
 
+
+  ldmxcsr [_floor]
+
   ; xmm0 = hh
   ; xmm1 = ss
   ; xmm2 = ll
@@ -151,3 +154,5 @@ _1111: dd 1.0, 1.0, 1.0, 1.0
 _360: dd 360.0
 _n360: dd -360.0
 _256: dd 256.0
+_floor: dd 0x7F80
+
