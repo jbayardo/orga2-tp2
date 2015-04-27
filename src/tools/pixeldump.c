@@ -19,8 +19,8 @@ int main(int argc, char* argv[]){
 	}
 
 	uint8_t *data = bmp_get_data(bmp);
-	uint32_t h    = *bmp_get_h(bmp);
-	uint32_t w    = *bmp_get_w(bmp);
+	int h  = (int) *bmp_get_h(bmp);
+	int w  = (int) *bmp_get_w(bmp);
 	int c1 = ((BMPIH*)(bmp->ih))->biBitCount;
 
 	if(c1 == 32) {
@@ -47,6 +47,8 @@ int main(int argc, char* argv[]){
 			}
 		}
 	}
+
+	bmp_delete(bmp);
 
 }
 
