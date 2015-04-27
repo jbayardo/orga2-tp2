@@ -1,1 +1,17 @@
 \section{Blur}
+
+\subsection{Introduccion}
+Blur es un filtro que suaviza la imagen. Esto lo hace asignandole a cada pixel el promedio (media aritmetica) con sus pixeles vecinos. Es decir:
+
+% todo: hacer que se vea bien esto...
+$m[j][i][k] = (m[j-1][i-1][k] + m[j-1][i][k] + m[j-1][i+1][k] + \\
+m[j] [i-1][k] + m[j] [i][k] + m[j] [i+1][k] + \\
+m[j+1][i-1][k] + m[j+1][i][k] + m[j+1][i+1][k] ) / 9$
+
+
+\subsection{C}
+
+\subsection{ASM1}
+
+\subsection{ASM2}
+

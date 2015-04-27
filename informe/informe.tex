@@ -16,6 +16,7 @@
 \usepackage{enumitem}
 \usepackage{tikz}
 \usepackage{setspace}
+\usepackage{wrapfig}
 \DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
 
 
@@ -38,7 +39,7 @@
     stringstyle=\color{red} % string color
 }
 
-\title{Organizacion del Computador II \\ TP2}
+\title{Organización del Computador II \\ TP2}
 
 \newcommand{\order}[1]{$\mathcal{O}(#1)$}
 
@@ -75,7 +76,7 @@
 \centering
 \begin{tabular}{|l l l|}
 \hline
-Integrante       & \multicolumn{1}{c}{LU}     & Correo electronico        \\ \hline
+Integrante       & \multicolumn{1}{c}{LU}     & Correo electrónico        \\ \hline
 Martin Baigorria & \multicolumn{1}{c}{575/14} & martinbaigorria@gmail.com \\ 
 Martin Baigorria & 575/14                      & martinbaigorria@gmail.com \\
 Gonzalo Ciruelos Rodríguez & 063/14           & gonzalo.ciruelos@gmail.com \\ \hline
@@ -85,7 +86,7 @@ Gonzalo Ciruelos Rodríguez & 063/14           & gonzalo.ciruelos@gmail.com \\ \
 \vfill
 
 \begin{center}
-\textbf{Reservado para la catedra}
+\textbf{Reservado para la cátedra}
 \end{center}
 \begin{table}[h]
 \centering
@@ -104,6 +105,9 @@ Segunda entrega &         &      \\ \hline
 
 \pagebreak
 
+\input{intro}
+\newpage
+
 \input{blur}
 \newpage
 \input{exp_blur}
@@ -119,5 +123,8 @@ Segunda entrega &         &      \\ \hline
 \input{hsl}
 \newpage
 \input{exp_hsl}
+
+\newpage
+\input{conclusion}
 
 \end{document}
