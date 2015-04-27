@@ -18,6 +18,7 @@
 \usepackage{setspace}
 \usepackage{wrapfig}
 \DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
 
 
 
@@ -57,12 +58,21 @@
 %%%%%%%%%% Macros misceláneos - Fin %%%%%%%%%%
 
 
-\newcommand{\regfloats}[4]{\begin{tabular}{|c|c|c|c|}\hline
-  #1 & #2 & #3 & #4 \\ \hline \end{tabular}}
+\newcommand{\regfloats}[4]{
+\vspace{0.5em}
+\begin{tabular}{|c|c|c|c|}\hline
+  #1 & #2 & #3 & #4 \\ \hline
+\end{tabular}
+\vspace{0.5em}}
 
-\newcommand{\regintOcho}[8]{\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
-  #1 & #2 & #3 & #4 & #5 & #6 & #7 & #8  \\ \hline \end{tabular}}
+\newcommand{\regintOcho}[8]{
 
+\vspace{0.5em}
+\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
+  #1 & #2 & #3 & #4 & #5 & #6 & #7 & #8  \\ \hline
+\end{tabular}
+\vspace{0.5em}
+}
 \onehalfspacing
 \begin{document}
 
