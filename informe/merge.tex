@@ -77,7 +77,7 @@ Luego, al hacer la diferencia
 psubw xmm4, xmm3
 \end{lstlisting}
 
-obtenemos en \xmm{4} exactamente lo que queremos, es decir que si sumamos int16 a int16 en \xmm{3} y \xmm{4} da 256.
+Obtenemos en \xmm{4} exactamente lo que queremos, es decir que si sumamos int16 a int16 en \xmm{3} y \xmm{4} da 256.
 
 
 Luego comenzamos el loop principal. Cargamos lo que nos interesa (2 pixeles) y los unpackeamos a words (16 bits), con ceros en la parte alta. Luego hacemos los productos de las partes bajas
@@ -97,10 +97,52 @@ De esta manera, los registros quedan de la siguiente forma
 \scriptsize{
 \regintOcho{$R_{21}(256-\ceil{256v}$} {$B_{21}(256-\ceil{256v})$} {$B_{21}(256-\ceil{256v})$} {$0$} {$R_{22}(256-\ceil{256v)}$} {$G_{22}(256-\ceil{256v})$} {$B_{22}(256-\ceil{256v})$} {$0$}
 }
-
+\normalsize
 En realidad, en cada uno de esos registros tenemos la parte baja del producto, pero es importante notar que la parte alta es siempre 0. ¿Por qué? Simplemente porque el canal siempre es menor o igual que 255 y $\ceil{256v}$ es menor o igual que 256, entonces el producto es siempre menor que 65280, que en especial es menor que 65535, el máximo numero representable por enteros sin signo en 16 bits.
 
+Luego dividimos por 256 cada canal, haciendo un shift de 8 bits en cada word con la instruccion psrlw.
+
+De esta manera, los registros quedan
 
 
+\xmm{1}
+\regintOcho{$\floor{\frac{R_{11}\ceil{256v}}{256}}$}
+{$\floor{\frac{B_{11}\ceil{256v}}{256}}$}
+{$\floor{\frac{B_{11}\ceil{256v}}{256}}$}
+{$A_{11}$}
+{$\floor{\frac{R_{12}\ceil{256v}}{256}}$}
+{$\floor{\frac{G_{12}\ceil{256v}}{256}}$}
+{$\floor{\frac{B_{12}\ceil{256v}}{256}}$}
+{$A_{12}$}
+
+Y \xmm{2} de manera analoga. Luego sumamos los registros, lo packeamos en 8 bits y lo guardamos en memoria.
+
+Finalmente loopeamos hasta terminar.
+
+
+
+\subsubsection*{Error}
+
+En la segunda versión de merge se comete, obviamente, más error que en la primera, dado que estamos trabajando con enteros, debemos perder precision cuando convertimos $256v$ a entero.
+
+Por esta razón, aproximadamente el 30\% de las veces, el resultado difiere en más de 2 con el output de C de la catedra. Esto se debe a que los métodos de cómputo son fundamentalmente distintos, uno con mucha mas precision que la otra.
+
+Pese a esto, el 100\% de los tests pasan con un error de 3, es decir, pese a que existe error, es despreciable. El error (por ejemplo, para el canal R) se puede expresar de la siguiente manera
+
+$$\bigg|\lfloor R_1v\rfloor + \lfloor R_2(1-v) \rfloor
+  -\bigg\lfloor \frac{R_1\lfloor 256v \rfloor}{256} \bigg\rfloor 
+ -\bigg\lfloor \frac{R_2(256- \lfloor 256v) \rfloor)}{256} \bigg\rfloor\bigg| $$
+
+
+$$\leq
+\bigg|
+\lfloor R_1v\rfloor - \bigg\lfloor \frac{R_1\lfloor 256v \rfloor}{256} \bigg\rfloor
+\bigg|
++
+\bigg|
+\lfloor R_2(1-v) \rfloor -\bigg\lfloor \frac{R_2(256- \lfloor 256v) \rfloor)}{256} \bigg\rfloor
+\bigg| $$
+
+Se puede verificar fácilmente con wolfram-alpha o algún software similar que es es menor que 3.
 
 
