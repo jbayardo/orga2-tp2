@@ -43,7 +43,7 @@ ASM_merge2:
   addss xmm3, xmm0     ; xmm3 =  0 | value | value | value
   pslldq xmm3, 4       ; xmm3 =  value | value | value | 0
   addss xmm3, xmm5     ; xmm3 =  value | value | value | 1.0
-  mulps xmm3, xmm1     ; xmm3 = 256*value | 256*value | 256*value | 1.0
+  mulps xmm3, xmm1     ; xmm3 = 256*value | 256*value | 256*value | 256.0
   
   cvtps2dq xmm3, xmm3  ; (int32) xmm3 = 256*value | 256*value | 256*value | 256
   packuswb xmm3, xmm3  ; (int16) xmm3 = 256*value | 256*value | 256*value | 256 | 256*value | 256*value | 256*value | 256
@@ -51,7 +51,7 @@ ASM_merge2:
 
   
 
-  movdqu xmm4, [_muchos256ints]  ; (int16) xmm4 =  256 | 256 | 256 | 256 | 256 | 256 | 256 | 256
+  movdqu xmm4, [_muchos257ints]  ; (int16) xmm4 =  257 | 257 | 257 | 257 | 257 | 257 | 257 | 257
   psubw xmm4, xmm3
 
   pxor xmm6, xmm6      ; xmm6 = 0
@@ -73,7 +73,7 @@ ASM_merge2:
 
   pmullw xmm1, xmm3         ; xmm1  = [B*v|G*v|R*v|A*1 | lo mismo aca ] 
   ;no me importa la parte alta
-  pmullw xmm2, xmm4         ; xmm1  = [B*(1-v)|G*(1-v)|R*(1-v)|A*1 | lo mismo aca ]
+  pmullw xmm2, xmm4         ; xmm2  = [B*(1-v)|G*(1-v)|R*(1-v)|A*1 | lo mismo aca ]
   ;no me importa la parte alta
    
 
@@ -114,7 +114,7 @@ ASM_merge2:
 
 _1: dd 1.0
 _muchos256: dd 256.0, 256.0, 256.0, 256.0
-_muchos256ints: dw 256, 256, 256, 256, 256, 256, 256, 256
+_muchos257ints: dw 257, 257, 257, 257, 257, 257, 257, 257
 _11111111: dw 1, 1, 1, 1, 1, 1, 1, 1
 _floor: dd 0x7F80
 

@@ -1,1 +1,106 @@
 \section{Merge}
+
+\subsection{C}
+El código de C es bastante simple. Lo que hace al inicio es castear ambos punteros a punteros a matrices de matrices, que tienen elementos de w bytes de tamaño, que a su vez tienen elementos de 4 bytes de tamaño.
+
+Luego se realizan 3 loops, el primero sobre las filas, el segundo sobre las columnas, y el tercero sobre los canales (exceptuando el canal de transparencia, notar que ii se inicializa en 1).
+
+Finalmente se realiza la cuenta que se debe hacer para hacer el merge, casteando todo adecuadamente (se castea el valor del canal, que es un entero de 1 byte a float, se lo multiplica por value o 1-value segun corresponda, se lo suma con el otro valor y se lo vuelve a castear a entero de 8 bytes).
+
+\subsection{ASM1}
+
+En la primera versión del codigo de ASM, iniciamos guardando los parámetros que nos pasan en algunos registros auxiliares para no perderlos mas adelante.
+Luego calculamos h*w dado que es la cantidad de iteraciones que vamos a realizar.
+
+\rcx nos servira de iterador y \rbx de puntero a la posición actual.
+
+Luego precalculamos dos vectores que vamos a usar en todas las iteraciones
+
+\xmm{3}
+\regfloats{$value$}{$value$}{$value$}{$1.0$}
+
+\xmm{4}
+\regfloats{$1-value$}{$1-value$}{$1-value$}{$0.0$}
+
+
+Luego empieza el loop principal de la rutina. Aqui cargamos 1 pixel de cada imagen (solamente podemos cargar un pixel porque vamos a hacer operaciones con punto flotante de precisión simple, entonces cargar 2 pixeles en una misma iteracion tiene el mismo costo que cargar hacerlo en 2 iteraciones separadas.
+
+Después hacemos unpacking para llevarlos a la forma que queremos y los convertimos a float, y los multiplicamos con los vectores que anteriormente habiamos generado, convenientemente. Entonces los registros tendran la pinta
+
+\xmm{1}
+\regfloats{$R_1 value$}{$G_1 value$}{$B_1 value$}{$A_1 1.0$}
+
+\xmm{2}
+\regfloats{$R_2 (1-value)$}{$G_2 (1-value)$}{$B_2 (1-value)$}{$A_2 0.0$}
+
+Luego los sumamos en xmm1, y queda la suma
+
+\xmm{1}
+\regfloats{$R_2 (1-value) + R_1 value$}{$G_2 (1-value) + G_1 value$}{$B_2 (1-value) + B_1 value$}{$A_2 0.0 + A_1 1.0$}
+
+Luego, lo pasamos a enteros de 32 bits, y lo packeamos a enteros de 8 bits nuevamente. 
+Notar que no se produce overflow. Tomemos por ejemplo el canal R, y supongamos que el valor del canal R para ambas imagenes es $255$.
+Entonces $255value + 255(1-value)$ da $255$, que entra en 8 bits (si por errores de redondeo diera más, no importa, ya que el packing lo hacemos saturado, entonces se queda en 255).
+
+Finalmente escribimos en el lugar de la memoria correspondiente el valor obtenido y listo, repetimos este proceso hasta terminar.
+
+
+\subsection{ASM2}
+
+Al igual que en la rutina anterior, luego de armar el stackframe guardamos los parametros en algunos registros auxiliares para no perderlos. El resto del proceso es el mismo que antes, hasta que llegamos al precalculo de los vectores de $value$. Como aquí hay que hacer operaciones con enteros, en vez de punto flotante como antes, vamos a calcular las cosas de manera diferente.
+
+En vez de guardarnos $value$, vamos a guardarnos $int16(256*value)$. ¿Por qué? Porque de esta manera vamos a poder cargar de a dos pixeles y hacer las operaciones mucho mas rápido que antes. Además así guardamos un valor que antes estaba entre 0 y 1 en un valor que esta entre 0 y 256, es decir, un valor que podemos representar con una buena aproximación entera.
+
+De esta menera nos armamos el vector igual que antes, solo que multiplicado por 256. Luego lo pasamos a entero y luego lo packeamos consigo mismo en la parte alta.
+\lstset{language={[x86masm]Assembler}}
+\begin{lstlisting}
+cvtps2dq xmm3, xmm3
+packuswb xmm3, xmm3
+\end{lstlisting}
+
+
+De esta manera obtenemos en \xmm{3} los siguientes valores
+
+\xmm{3}
+
+\regintOcho{256$v$}{256$v$}{256$v$}{256}{256$v$}{256$v$}{256$v$}{256}
+
+Donde $v$ es $value$.
+
+
+Ahora, nos gustaría tener en el otro registros los numeros tal que, sumados con los de \xmm{3}, dan 256. Para eso, nos aprovechamos de la representación complemento a 2, dado que lo que queremos en realidad son los inversos aditivos (en 8 bits) de estos números en el registro \xmm{4}. Entonces usamos que el inverso aditivo de un número es el negado bit a bit más 1.
+
+Cargamos en \xmm{4} 8 enteros de 16 bits con valor 257, ya que es 256+1.
+Luego, al hacer la diferencia
+
+\begin{lstlisting}
+psubw xmm4, xmm3
+\end{lstlisting}
+
+obtenemos en \xmm{4} exactamente lo que queremos, es decir que si sumamos int16 a int16 en \xmm{3} y \xmm{4} da 256.
+
+
+Luego comenzamos el loop principal. Cargamos lo que nos interesa (2 pixeles) y los unpackeamos a words (16 bits), con ceros en la parte alta. Luego hacemos los productos de las partes bajas
+
+\begin{lstlisting}
+pmullw xmm1, xmm3
+pmullw xmm2, xmm4 
+\end{lstlisting}
+
+De esta manera, los registros quedan de la siguiente forma
+
+\xmm{1}
+\regintOcho{$R_{11}\ceil{256v}$} {$B_{11}\ceil{256v}$} {$B_{11}\ceil{256v}$} {$256A_{11}$} {$R_{12}\ceil{256v}$} {$G_{12}\ceil{256v}$} {$B_{12}\ceil{256v}$} {$256A_{12}$}
+
+
+\xmm{2}
+\scriptsize{
+\regintOcho{$R_{21}(256-\ceil{256v}$} {$B_{21}(256-\ceil{256v})$} {$B_{21}(256-\ceil{256v})$} {$0$} {$R_{22}(256-\ceil{256v)}$} {$G_{22}(256-\ceil{256v})$} {$B_{22}(256-\ceil{256v})$} {$0$}
+}
+
+En realidad, en cada uno de esos registros tenemos la parte baja del producto, pero es importante notar que la parte alta es siempre 0. ¿Por qué? Simplemente porque el canal siempre es menor o igual que 255 y $\ceil{256v}$ es menor o igual que 256, entonces el producto es siempre menor que 65280, que en especial es menor que 65535, el máximo numero representable por enteros sin signo en 16 bits.
+
+
+
+
+

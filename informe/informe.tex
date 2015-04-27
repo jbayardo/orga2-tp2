@@ -15,8 +15,10 @@
 \usepackage{ifthen}
 \usepackage{enumitem}
 \usepackage{tikz}
-
+\usepackage{setspace}
 \DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+
+
 
 %\let\NombreFuncion=\textsc
 %\let\TipoVariable=\texttt
@@ -30,7 +32,7 @@
     frame=tb, % draw a frame at the top and bottom of the code block
     tabsize=4, % tab space width
     showstringspaces=false, % don't mark spaces in strings
-    numbers=left, % display line numbers on the left
+    %numbers=left, % display line numbers on the left
     commentstyle=\color{green}, % comment color
     keywordstyle=\color{blue}, % keyword color
     stringstyle=\color{red} % string color
@@ -40,6 +42,27 @@
 
 \newcommand{\order}[1]{$\mathcal{O}(#1)$}
 
+
+%%%%%%%%%% Macros misceláneos - Inicio %%%%%%%%%%
+\newcommand{\xmm}[1]{\texttt{XMM#1}\ }
+\newcommand{\rax}{\texttt{RAX}\ }
+\newcommand{\rbx}{\texttt{RBX}\ }
+\newcommand{\rcx}{\texttt{RCX}\ }
+\newcommand{\rdx}{\texttt{RDX}\ }
+\newcommand{\rbp}{\texttt{RBP}\ }
+\newcommand{\rsp}{\texttt{RSP}\ }
+\newcommand{\reg}[1]{\texttt{R#1}\ }
+\newcommand{\asm}[1]{\texttt{\uppercase{#1}}\ }
+%%%%%%%%%% Macros misceláneos - Fin %%%%%%%%%%
+
+
+\newcommand{\regfloats}[4]{\begin{tabular}{|c|c|c|c|}\hline
+  #1 & #2 & #3 & #4 \\ \hline \end{tabular}}
+
+\newcommand{\regintOcho}[8]{\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
+  #1 & #2 & #3 & #4 & #5 & #6 & #7 & #8  \\ \hline \end{tabular}}
+
+\onehalfspacing
 \begin{document}
 
 %% cover page
@@ -55,7 +78,7 @@
 Integrante       & \multicolumn{1}{c}{LU}     & Correo electronico        \\ \hline
 Martin Baigorria & \multicolumn{1}{c}{575/14} & martinbaigorria@gmail.com \\ 
 Martin Baigorria & 575/14                      & martinbaigorria@gmail.com \\
-Martin Baigorria & 575/14                      & martinbaigorria@gmail.com \\ \hline
+Gonzalo Ciruelos Rodríguez & 063/14           & gonzalo.ciruelos@gmail.com \\ \hline
 \end{tabular}
 \end{table}
 
@@ -93,7 +116,7 @@ Segunda entrega &         &      \\ \hline
 
 \newpage
 
-\input{hsl}}
+\input{hsl}
 \newpage
 \input{exp_hsl}
 
