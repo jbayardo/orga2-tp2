@@ -1,1 +1,50 @@
 \section{HSL}
+
+\subsection{C}
+El código de C, al igual que el resto, es bastante sencillo. Lo que hace es loopear sobre todos los píxeles, hacer una conversión de RGB a HSL, hacer las sumas correspondientes, y luego volver a convertir a RGB.
+
+Lo malo de la implementacion es que el código sin optimizar de C hace más operaciones de las necesarias, ya que no usa todo el poder de las operaciones en SSE, que nosotros intentamos utilizar al máximo.
+
+\subsection{ASM1}
+
+En la versión primera versión del código de assembler la operatoriaes bastante distinta a la de C.
+Al principio calculamos en xmm4 el vector de números que debemos sumarle a cada pixel hsl, con los parámetros que nos pasaron. De esta manera, 
+
+\xmm{4}
+\regfloats{l}{s}{h}{0}
+
+Donde h,s,l son los que nos pasaron como parámetro y el 0 es lo que le tenemos que sumar a la transparencia (nada). Este registro tenemos que guardarlo en la pila, dado que cuando llamamos a rgbTOhsl, nos puede pisar los registros xmm pues la calling convention de C no especifica nada sobre que no se puedan pisar (de hecho en algunos casos lo pisa, fue un bug que tardamos en encontrar).
+
+Tambien tenemos que malloc'ear un float para llamar a las funciones rgbTOhsl y hslTOrgb. Podríamos usar la pila, pero nos resultó mas fácil usar este método.
+
+Luego comenzamos a loopear. 
+
+Lo primero que hacemos es llamar a la función rgbTOhsl, de manera que en nuestro puntero a float que malloc'eamos nos que nos va a quedar el valor hsl del pixel en el puntero.
+
+Lo que hacemos después es recuperar los parámetros, que estaban en la pila (dado que posiblemente el llamado a rgbTOhsl haya pisado el registro).
+
+Luego cargamos los registros que vamos a suar para comparaciones y sumas y restas y finalmente guardamos el valor del pixel en hsl en xmm3
+
+\xmm{3}
+\regfloats{LL, SS, HH, AA}
+
+Luego sumamos este registro con el registro que contiene los parámetros, como indica el filtro, de manera que queda
+
+\xmm{3}
+\regfloats{l+LL}{s+SS}{h+HH}{AA}
+
+Ahora comienza la operatoria de saturación, entonces vamos a armar los siguientes registros
+
+\xmm{5}
+\regfloats{1-(l+LL)}{1-(s+SS)}{-360}{0}
+
+\xmm{6}
+\regfloats{-(l+LL)}{-(s+SS)}{360}{0}
+
+
+Notar que lo que necesitamos hacer esto
+
+
+
+
+
