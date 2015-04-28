@@ -24,9 +24,6 @@ ASM_hsl1:
   push r15
   sub rsp, 8
 
-
-  ;ldmxcsr [_floor]
-
   ; xmm0 = hh
   ; xmm1 = ss
   ; xmm2 = ll
@@ -61,7 +58,7 @@ ASM_hsl1:
   pslldq xmm4, 4
   sub rsp, 16
   movdqu [rsp], xmm4
-
+;;;; xmm4 = [ll | ss | hh | 00]
   
 
 
@@ -79,12 +76,7 @@ ASM_hsl1:
   ; ahora en rbx tengo 4 floats, que representan la transparencia, H, S, L
 
 
-
-
-
-;;;; xmm4 = [ll | ss | hh | 00]
-
-
+  ;;;; xmm4 = [ll | ss | hh | 00]
   movdqu xmm4, [rsp]
   
   movups xmm7, [_1111]   ; xmm7 = [1 | 1 | 1 | 1]
@@ -92,8 +84,6 @@ ASM_hsl1:
   movss xmm9, [_360]   ; xmm9 = [ x | x | x | 360.0]
   movss xmm10, [_n360]   ; xmm10 = [ x | x | x | -360.0]
   movss xmm11, [_256]   ; xmm11 = [ x | x | x | 256.0]
-
-
 
 
   movups xmm3, [rbx]   ; xmn3 = [L|L|L|L | S|S|S|S | H|H|H|H | A|A|A|A]
@@ -132,9 +122,8 @@ ASM_hsl1:
   
 
   cmpltps xmm12, xmm3 ; xmm12 = 1 o 0 dependiendo
- movdqa xmm14, xmm13
- movdqa xmm13, xmm3
-  
+  movdqa xmm14, xmm13
+  movdqa xmm13, xmm3   ; los doy vuelta porque necesito greater than
   cmpltps xmm13, xmm14  ; xmm13 = 1 o 0 dependiendo
 
   pand xmm5, xmm12
@@ -170,9 +159,8 @@ ASM_hsl1:
   pop rbp
   ret
 
-_hsl: dd 1.0, 1.0, 1.0, 1.0
 _1111: dd 1.0, 1.0, 1.0, 1.0
 _360: dd 360.0
 _n360: dd -360.0
 _256: dd 256.0
-_floor: dd 0x7F80
+
