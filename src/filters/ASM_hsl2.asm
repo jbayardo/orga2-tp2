@@ -221,8 +221,25 @@ _rgbTOhsl:
 ; hay que devolver los 4 pixeles rgb por $r14 + 4*$rcx
 _hslTOrgb:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; calculo de h -> xmm5 ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;
+  movss xmm5, xmm0
+  pslld xmm5, 4
+
+  movss xmm5, xmm1
+  pslld xmm5, 4
+
+  movss xmm5, xmm2
+  pslld xmm5, 4
+
+  movss xmm5, xmm3
+  pslld xmm5, 4
+
+  ; xmm5 = [H0 | H1 | H2 | H3]
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; calculo de c -> xmm0 ;;
-	;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;
 	movaps xmm0, xmm3
 	psrldq xmm0, 12  ; xmm0 = [0|0|0|L]
   movps xmm1, [_2]
@@ -303,15 +320,94 @@ _hslTOrgb:
   packuswb xmm2, xmm15
   ; Los convierto todos a enteros de 8 bits
 
-  psrldq xmm0, 2
-  psrldq xmm1, 1
+  psrldq xmm0, 3
+  psrldq xmm1, 2
+  psrldq xmm2, 1
   ; Shifteamos a la izquierda para que nos quede tipo escalera
 
   paddb xmm0, xmm1
   paddb xmm0, xmm2
-  ; [0|c1|x1|m1 | 0|c2|x2|m2 | 0|c3|x3|m3 | 0|c4|x4|m4]
+  ; [c1|x1|m1|0 | c2|x2|m2|0 | c3|x3|m3|0 | c4|x4|m4|0]
+
+  pxor xmm14, xmm14
+  pandn xmm14, xmm14
+  ; xmm14 = 1
 
 
+  ; Primer run, h < 60
+  movdqa xmm6, xmm5 ; xmm5 son los H
+  movdqa xmm13, [_60]
+  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  pandn xmm6, xmm6
+  pand xmm14, xmm6
+
+  movaps xmm7, [_m1]
+  pand xmm7, xmm14
+  pshufb xmm0, xmm7
+
+  ; Primer run, h < 120
+  movdqa xmm6, xmm5 ; xmm5 son los H
+  movdqa xmm13, [_120]
+  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  pandn xmm6, xmm6
+  pand xmm14, xmm6
+
+  movaps xmm7, [_m2]
+  pand xmm7, xmm14
+  pshufb xmm0, xmm7
+
+  ; Primer run, h < 180
+  movdqa xmm6, xmm5 ; xmm5 son los H
+  movdqa xmm13, [_180]
+  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  pandn xmm6, xmm6
+  pand xmm14, xmm6
+
+  movaps xmm7, [_m3]
+  pand xmm7, xmm14
+  pshufb xmm0, xmm7
+
+  ; Primer run, h < 240
+  movdqa xmm6, xmm5 ; xmm5 son los H
+  movdqa xmm13, [_240]
+  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  pandn xmm6, xmm6
+  pand xmm14, xmm6
+
+  movaps xmm7, [_m4]
+  pand xmm7, xmm14
+  pshufb xmm0, xmm7
+
+  ; Primer run, h < 300
+  movdqa xmm6, xmm5 ; xmm5 son los H
+  movdqa xmm13, [_300]
+  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  pandn xmm6, xmm6
+  pand xmm14, xmm6
+
+  movaps xmm7, [_m5]
+  pand xmm7, xmm14
+  pshufb xmm0, xmm7
+
+  ; Primer run, h < 360
+  movdqa xmm6, xmm5 ; xmm5 son los H
+  movdqa xmm13, [_360]
+  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  pandn xmm6, xmm6
+  pand xmm14, xmm6
+
+  movaps xmm7, [_m6]
+  pand xmm7, xmm14
+  pshufb xmm0, xmm7
+
+  ; TODO: Mover de a 4
+  movss [r14 + 4*rcx], xmm0
 
   jmp .hslTOrgbBack
 
@@ -324,9 +420,34 @@ _240: dd 240.0, 240.0, 240.0, 240.0
 _255: dd 255.0, 255.0, 255.0, 255.0
 _300: dd 300.0, 300.0, 300.0, 300.0
 _360: dd 360.0, 360.0, 360.0, 360.0
-
 _510: dd 510.0, 510.0, 510.0, 510.0
 
+_m1: db 0xF, 0xE, 0xD, 0xC,
+        0xB, 0xA, 0x9, 0x8,
+        0x7, 0x6, 0x5, 0x4,
+        0x3, 0x2, 0x1, 0x0
 
+_m2: db 0xE, 0xF, 0xD, 0xC,
+        0xA, 0xB, 0x9, 0x8,
+        0x6, 0x7, 0x5, 0x4,
+        0x2, 0x3, 0x1, 0x0
 
+_m3: db 0xD, 0xF, 0xE, 0xC,
+        0x9, 0xB, 0xA, 0x8,
+        0x5, 0x7, 0x6, 0x4,
+        0x1, 0x3, 0x2, 0x0
 
+_m4: db 0xD, 0xE, 0xF, 0xC,
+        0x9, 0xA, 0xB, 0x8,
+        0x5, 0x6, 0x7, 0x4,
+        0x1, 0x2, 0x3, 0x0
+
+_m5: db 0xE, 0xD, 0xF, 0xC,
+        0xA, 0x9, 0xB, 0x8,
+        0x6, 0x5, 0x7, 0x4,
+        0x2, 0x1, 0x3, 0x0
+
+_m6: db 0xF, 0xD, 0xE, 0xC,
+        0xB, 0x9, 0xA, 0x8,
+        0x7, 0x5, 0x6, 0x4,
+        0x3, 0x1, 0x2, 0x0
