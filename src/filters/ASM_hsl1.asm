@@ -25,7 +25,7 @@ ASM_hsl1:
   sub rsp, 8
 
 
-  ldmxcsr [_floor]
+  ;ldmxcsr [_floor]
 
   ; xmm0 = hh
   ; xmm1 = ss
@@ -55,17 +55,15 @@ ASM_hsl1:
   pxor xmm4, xmm4
   movss xmm4, xmm2
   pslldq xmm4, 4
-  movss xmm4, xmm1
+  addss xmm4, xmm1
   pslldq xmm4, 4
-  movss xmm4, xmm0
-  pslldq xmm4, 4 
-;;;; xmm4 = [ll | ss | hh | 00]
+  addss xmm4, xmm0
+  pslldq xmm4, 4
+  sub rsp, 16
+  movdqu [rsp], xmm4
 
-  movups xmm7, [_1111]   ; xmm7 = [1 | 1 | 1 | 1]
-  pxor xmm8, xmm8      ; xmm8 = 0
-  movss xmm9, [_360]   ; xmm9 = [ x | x | x | 360.0]
-  movss xmm10, [_n360]   ; xmm10 = [ x | x | x | -360.0]
-  movss xmm11, [_256]   ; xmm11 = [ x | x | x | 256.0]
+  
+
 
 .loop:
   cmp rcx, r15   ; si iterador = h*w, listo, terminamos
@@ -80,6 +78,24 @@ ASM_hsl1:
   pop rcx
   ; ahora en rbx tengo 4 floats, que representan la transparencia, H, S, L
 
+
+
+
+
+;;;; xmm4 = [ll | ss | hh | 00]
+
+
+  movdqu xmm4, [rsp]
+  
+  movups xmm7, [_1111]   ; xmm7 = [1 | 1 | 1 | 1]
+  pxor xmm8, xmm8      ; xmm8 = 0
+  movss xmm9, [_360]   ; xmm9 = [ x | x | x | 360.0]
+  movss xmm10, [_n360]   ; xmm10 = [ x | x | x | -360.0]
+  movss xmm11, [_256]   ; xmm11 = [ x | x | x | 256.0]
+
+
+
+
   movups xmm3, [rbx]   ; xmn3 = [L|L|L|L | S|S|S|S | H|H|H|H | A|A|A|A]
   addps xmm3, xmm4     ; xmm3 = [l + LL | s + SS | h + HH | a + 00] 
 
@@ -92,7 +108,7 @@ ASM_hsl1:
   movaps xmm5, xmm7    ; xmm5 = [1 | 1 | 1 | 1]
   subps xmm5, xmm3     ; xmm5 = [1-(l+LL) | 1-(s+SS) | 1-(h+HH) | 1-(a+00)]
   psrldq xmm5, 4       ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | 1-(h+HH)]
-  movss xmm5, xmm9     ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | 360     ]
+  movss xmm5, xmm10    ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | 360     ]
   pslldq xmm5, 4       ; xmm5 = [1-(l+LL) | 1-(s+SS) | 360      | 0       ]
 
 
@@ -100,7 +116,7 @@ ASM_hsl1:
   pxor xmm6, xmm6      ; xmm6 = [0 | 0 | 0 | 0]
   subps xmm6, xmm3     ; xmm5 = [-(l+LL)  | -(s+SS)  | -(h+HH)  | -(a+00) ]
   psrldq xmm6, 4       ; xmm5 = [0        | -(l+LL)  | -(s+SS)  | -(h+HH) ]
-  movss xmm6, xmm10    ; xmm5 = [0        | -(l+LL)  | -(s+SS)  | -360    ]
+  movss xmm6, xmm9     ; xmm5 = [0        | -(l+LL)  | -(s+SS)  | -360    ]
   pslldq xmm6, 4       ; xmm5 = [-(l+LL)  | -(s+SS)  | -360     | 0       ]
   
   ;; ahora tengo que comparar con los vectores 
@@ -116,7 +132,10 @@ ASM_hsl1:
   
 
   cmpltps xmm12, xmm3 ; xmm12 = 1 o 0 dependiendo
-  cmpnltps xmm13, xmm3  ; xmm13 = 1 o 0 dependiendo
+ movdqa xmm14, xmm13
+ movdqa xmm13, xmm3
+  
+  cmpltps xmm13, xmm14  ; xmm13 = 1 o 0 dependiendo
 
   pand xmm5, xmm12
   pand xmm6, xmm13
@@ -139,6 +158,7 @@ ASM_hsl1:
   jmp .loop
 
 .fin:
+  add rsp, 16
   mov rdi, rbx
   call free
   add rsp, 8
@@ -150,9 +170,9 @@ ASM_hsl1:
   pop rbp
   ret
 
+_hsl: dd 1.0, 1.0, 1.0, 1.0
 _1111: dd 1.0, 1.0, 1.0, 1.0
 _360: dd 360.0
 _n360: dd -360.0
 _256: dd 256.0
 _floor: dd 0x7F80
-
