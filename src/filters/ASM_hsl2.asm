@@ -31,7 +31,7 @@ ASM_hsl2:
   mov r12d, edi ; r12 = w
   mov r13d, esi ; r13 = h
   mov r14, rdx  ; r14 = data
-  
+
   mov r12d, r12d ; limpio la parte alta
   mov r13d, r13d ; de estos registros
 
@@ -43,10 +43,10 @@ ASM_hsl2:
 
 
 
-  mov rax, r12 
+  mov rax, r12
   mul r13        ; rax = h*w (suponiendo que no hay overflow)
   mov r15, rax   ; r15 = h*w
-  
+
   mov rcx, 0     ; iterador
 
 ;;;; genero el vector que le voy a sumar, que tiene que ser de la pinta
@@ -61,7 +61,7 @@ ASM_hsl2:
   sub rsp, 16
   movdqu [rsp], xmm4
 ;;;; xmm4 = [ll | ss | hh | 00]
-  
+
 
 
 .loop:
@@ -80,7 +80,7 @@ ASM_hsl2:
 
   ;;;; recupero xmm4 = [ll | ss | hh | 00]
   movdqu xmm4, [rsp]
-  
+
   movups xmm7, [_1111]   ; xmm7 = [1 | 1 | 1 | 1]
   pxor xmm8, xmm8      ; xmm8 = 0
   movss xmm9, [_360]   ; xmm9 = [ x | x | x | 360.0]
@@ -89,10 +89,10 @@ ASM_hsl2:
 
 
   movups xmm3, [rbx]   ; xmn3 = [L|L|L|L | S|S|S|S | H|H|H|H | A|A|A|A]
-  addps xmm3, xmm4     ; xmm3 = [l + LL | s + SS | h + HH | a + 00] 
+  addps xmm3, xmm4     ; xmm3 = [l + LL | s + SS | h + HH | a + 00]
 
   ;; Ahora tengo que hacer los if's. Para eso voy a usar dos registros
-  ;; xmm5 = [ 1-(l+LL) | 1-(s+SS) | -360 | 0] 
+  ;; xmm5 = [ 1-(l+LL) | 1-(s+SS) | -360 | 0]
   ;; xmm6 = [ -(l+LL)  | -(s+SS)  | 360  | 0]
   ;; notar que basta seleccionar cuales quiero usar (haciendo and) y sumandolos
 
@@ -110,18 +110,18 @@ ASM_hsl2:
   psrldq xmm6, 4       ; xmm5 = [0        | -(l+LL)  | -(s+SS)  | -(h+HH) ]
   movss xmm6, xmm9     ; xmm5 = [0        | -(l+LL)  | -(s+SS)  | -360    ]
   pslldq xmm6, 4       ; xmm5 = [-(l+LL)  | -(s+SS)  | -360     | 0       ]
-  
-  ;; ahora tengo que comparar con los vectores 
+
+  ;; ahora tengo que comparar con los vectores
   ;; [1 | 1 | 360 | 256] = xmm12
   ;; [0 | 0 | 0   | 0  ] = xmm13
 
   movaps xmm12, xmm7   ; xmm7 = [1 | 1 | 1 | 1]
-  movss xmm12, xmm9    ; xmm7 = [1 | 1 | 1 | 360] 
+  movss xmm12, xmm9    ; xmm7 = [1 | 1 | 1 | 360]
   pslldq xmm12, 4      ; xmm7 = [1 | 1 | 360 | 0]
   movss xmm12, xmm11   ; xmm7 = [1 | 1 | 360 | 256]
 
   pxor xmm13, xmm13    ; xmm13 = [0 | 0 | 0 | 0]
-  
+
 
   cmpltps xmm12, xmm3 ; xmm12 = 1 o 0 dependiendo
   movdqa xmm14, xmm13
@@ -137,18 +137,13 @@ ASM_hsl2:
 
   movups [rbx], xmm3  ; lo guardo en mi posicion de memoria
   mov rdi, rbx
-  lea rsi, [r14 + 4*rcx] 
-  
-  push rcx
-  sub rsp, 8
-  call hslTOrgb
-  add rsp, 8
-  pop rcx
+  lea rsi, [r14 + 4*rcx]
+
+  jmp hslTOrgb
+.hslTOrgbBack
 
   inc rcx
   jmp .loop
-
-
 
 
 .fin:
@@ -174,7 +169,7 @@ _256: dd 256.0
 ;puedo romper todos los registros
 ;tengo que devolver el resultado en xmm0, xmm1, xmm2, xmm3
 _rgbTOhsl:
- 
+
   ; xmm3 va a ser [L|S|H|A]
   movss xmm12, [rdi]
   pxor xmm13, xmm13
@@ -186,7 +181,7 @@ _rgbTOhsl:
   movaps xmm0, xmm12
   movaps xmm1, xmm12
   movaps xmm2, xmm12
-  
+
   psrldq xmm0, 4
   psrldq xmm1, 8
   psrldq xmm2, 12
@@ -202,13 +197,13 @@ _rgbTOhsl:
 
   movaps xmm14, xmm0  ; xmm14 = max
   subps xmm14, xmm1   ; xmm14 = max - min
-  
+
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; CALCULO DE L ;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  
-  
+
+
   pxor xmm3, xmm3
 
 	movaps xmm8, [_510]
@@ -230,77 +225,105 @@ _hslTOrgb:
 	;;;;;;;;;;;;;;;;;;;;;;;;;;
 	movaps xmm0, xmm3
 	psrldq xmm0, 12  ; xmm0 = [0|0|0|L]
-  movss xmm1, [_2]
-	mulss xmm0, xmm1 ; xmm0 = [0|0|0|2*L]
+  movps xmm1, [_2]
+	mulps xmm0, xmm1 ; xmm0 = [0|0|0|2*L]
   movups xmm15, [_1111]
-	subss xmm0, xmm15 ; xmm0 = [0|0|0|2*L-1]
+	subps xmm0, xmm15 ; xmm0 = [0|0|0|2*L-1]
 	pxor xmm2, xmm2  ; xmm2 = 0
-	movss xmm1, xmm0 ; xmm1 = [0|0|0|2*L-1]
-	subss xmm2, xmm1 ; xmm2 = [0|0|0|1-2*L]
-	maxss xmm0, xmm2 ; xmm0 = [0|0|0|fabs(2*L-1)]
+	movps xmm1, xmm0 ; xmm1 = [0|0|0|2*L-1]
+	subps xmm2, xmm1 ; xmm2 = [0|0|0|1-2*L]
+	maxps xmm0, xmm2 ; xmm0 = [0|0|0|fabs(2*L-1)]
 	movups xmm1, xmm15
-	subss xmm1, xmm0 ; xmm1 = [x|x|x|1-fabs(2*L-1)]
+	subps xmm1, xmm0 ; xmm1 = [x|x|x|1-fabs(2*L-1)]
   movaps xmm0, xmm3
 	psrldq xmm0, 8
-	mulss xmm0, xmm1 ; xmm0 = [x|x|x|c = ( 1 - fabs( 2*L - 1 )) * s]
+	mulps xmm0, xmm1 ; xmm0 = [x|x|x|c = ( 1 - fabs( 2*L - 1 )) * s]
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; calculo de x -> xmm1 ;;
 	;;;;;;;;;;;;;;;;;;;;;;;;;;
-  
+
 	movaps xmm1, xmm3
 	psrldq xmm1, 4
-	movss xmm15, [_60]
-	divss xmm1, xmm15 ; xmm1 = [x|x|x|H/60]
+	movps xmm15, [_60]
+	divps xmm1, xmm15 ; xmm1 = [x|x|x|H/60]
 	movaps xmm12, xmm1; xmm12 = [x|x|x|H/60]
-	movss xmm13, [_2] ; xmm13 = [x|x|x|2]
-	divss xmm12, xmm13
-	roundss xmm12, xmm12, 0 ;; CONSULTAR : modo de redondeo
-	mulss xmm12, xmm13
-	subss xmm1, xmm12  ; xmm1 = [x|x|x|n-trunc(n/d)*d = fmod(H/60, 2)]
-	movss xmm13, [_1111] 
-	subss xmm1, xmm13; xmm1 = [x|x|x|fmod(H/60,2)-1]
+	movps xmm13, [_2] ; xmm13 = [x|x|x|2]
+	divps xmm12, xmm13
+	roundps xmm12, xmm12, 0 ;; CONSULTAR : modo de redondeo
+	mulps xmm12, xmm13
+	subps xmm1, xmm12  ; xmm1 = [x|x|x|n-trunc(n/d)*d = fmod(H/60, 2)]
+	movps xmm13, [_1111]
+	subps xmm1, xmm13; xmm1 = [x|x|x|fmod(H/60,2)-1]
   pxor xmm2, xmm2  ; xmm2 = 0
-	subss xmm2, xmm1 ; xmm2 = [0|0|0|-(fmod(H/60,2)-1)]
-	maxss xmm1, xmm2 ; xmm0 = [0|0|0|fabs(fmod(H/60, 2)-1)]
-	subss xmm13, xmm1; xmm13= [x|x|x|1-fabs(fmod(H/60, 2)-1)]
-	mulss xmm13, xmm0
+	subps xmm2, xmm1 ; xmm2 = [0|0|0|-(fmod(H/60,2)-1)]
+	maxps xmm1, xmm2 ; xmm0 = [0|0|0|fabs(fmod(H/60, 2)-1)]
+	subps xmm13, xmm1; xmm13= [x|x|x|1-fabs(fmod(H/60, 2)-1)]
+	mulps xmm13, xmm0
 	movaps xmm1, xmm13  ; xmm1 = [x|x|x|x = C*(1-fabs(fmod(H/60,2)-1))]
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; calculo de m -> xmm2 ;;
 	;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  movss xmm13, [_2]
-	movss xmm2, xmm0
-	divss xmm2, xmm13
-	movss xmm14, xmm2
-	movss xmm2, xmm3
-	subss xmm2, xmm14 ; xmm2 = [x|x|x|m = L-C/2]
-  
+  movps xmm13, [_2]
+	movps xmm2, xmm0
+	divps xmm2, xmm13
+	movps xmm14, xmm2
+	movps xmm2, xmm3
+	subps xmm2, xmm14 ; xmm2 = [x|x|x|m = L-C/2]
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;; calculo RGB           ;;
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  pxor xmm15, xmm15  ; xmm15 = rgb (resultado)
-	pxor xmm6, xmm6    ; xmm6 = 
 
-	movaps xmm12, xmm3
-	psrldq xmm12, 12
+  movaps xmm15, [_255] ; xmm15 = 255.0
 
-  pxor xmm13, xmm13   ; xmm13 = 0
-	movss xmm14, [_60]  ; xmm14 = 60
-  cmpnltps xmm13, xmm3  ; xmm13 = 1 o 0 dependiendo
-  cmpltps xmm14, xmm3 ; xmm14 = 1 o 0 dependiendo
+  addps xmm0, xmm2
+  addps xmm1, xmm2 ; Le sumo m a todos los x y todos los c
+
+  mulps xmm0, xmm15 ; Registro con los c
+  mulps xmm1, xmm15 ; Registro con los x
+  mulps xmm2, xmm15 ; Registro con los 0
+
+  cvtps2dq xmm0, xmm0
+  cvtps2dq xmm1, xmm1
+  cvtps2dq xmm2, xmm2 ; Los convierto todos a enteros de 32 bits
+
+  pxor xmm15, xmm15 ; xmm15 = 0
+
+  packusdw xmm0, xmm15 ; xmm0 = [0|0|(c1 + m1)*255 | 0|0|(c2 + m2)*255 | 0|0|(c3 + m3)*255 | 0|0|(c4 + m4)*255]
+  packusdw xmm1, xmm15 ; xmm1 = [0|0|(x1 + m1)*255 | 0|0|(x2 + m2)*255 | 0|0|(x3 + m3)*255 | 0|0|(x4 + m4)*255]
+  packusdw xmm2, xmm15 ; xmm2 = [0|0|m1 | 0|0|m2 | 0|0|m3 | 0|0|m4]
+  ; Los convierto todos a enteros de 16 bits
+
+  packuswb xmm0, xmm15
+  packuswb xmm1, xmm15
+  packuswb xmm2, xmm15
+  ; Los convierto todos a enteros de 8 bits
+
+  psrldq xmm0, 2
+  psrldq xmm1, 1
+  ; Shifteamos a la izquierda para que nos quede tipo escalera
+
+  paddb xmm0, xmm1
+  paddb xmm0, xmm2
+  ; [0|c1|x1|m1 | 0|c2|x2|m2 | 0|c3|x3|m3 | 0|c4|x4|m4]
 
 
 
-_2: dd 2.0
-_60: dd 60.0
-_120: dd 120.0
-_180: dd 180.0
-_240: dd 240.0
-_300: dd 300.0
+  jmp .hslTOrgbBack
+
+align 16
+_2: dd 2.0, 2.0, 2.0, 2.0
+_60: dd 60.0, 60.0, 60.0, 60.0
+_120: dd 120.0, 120.0, 120.0, 120.0
+_180: dd 180.0, 180.0, 180.0, 180.0
+_240: dd 240.0, 240.0, 240.0, 240.0
+_255: dd 255.0, 255.0, 255.0, 255.0
+_300: dd 300.0, 300.0, 300.0, 300.0
+_360: dd 360.0, 360.0, 360.0, 360.0
 
 _510: dd 510.0, 510.0, 510.0, 510.0
 
