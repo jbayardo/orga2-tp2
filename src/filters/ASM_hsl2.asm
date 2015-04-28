@@ -42,6 +42,7 @@ ASM_hsl2:
                  ; lo voy a usar para llamar a las funciones conversoras
 
 
+
   mov rax, r12 
   mul r13        ; rax = h*w (suponiendo que no hay overflow)
   mov r15, rax   ; r15 = h*w
@@ -53,20 +54,15 @@ ASM_hsl2:
   pxor xmm4, xmm4
   movss xmm4, xmm2
   pslldq xmm4, 4
-  movss xmm4, xmm1
+  addss xmm4, xmm1
   pslldq xmm4, 4
-  movss xmm4, xmm0
-  pslldq xmm4, 4 
+  addss xmm4, xmm0
+  pslldq xmm4, 4
+  sub rsp, 16
+  movdqu [rsp], xmm4
 ;;;; xmm4 = [ll | ss | hh | 00]
+  
 
-  movups xmm7, [_1111]   ; xmm7 = [1 | 1 | 1 | 1]
-  pxor xmm8, xmm8      ; xmm8 = 0
-  movss xmm9, [_360]   ; xmm9 = [ x | x | x | 360.0]
-  movss xmm10, [_n360]   ; xmm10 = [ x | x | x | -360.0]
-  movss xmm11, [_256]   ; xmm11 = [ x | x | x | 256.0]
-
-;; ARRANCA EL LOOP ;;
-;;;;;;;;;;;;;;;;;;;;;
 
 .loop:
   cmp rcx, r15   ; si iterador = h*w, listo, terminamos
@@ -74,11 +70,25 @@ ASM_hsl2:
 
   lea rdi, [r14 + 4*rcx] ; rdi = r14 + rcx
   mov rsi, rbx         ; rsi = puntero a float
-
+  push rcx
+  sub rsp, 8
   call rgbTOhsl
+  add rsp, 8
+  pop rcx
   ; ahora en rbx tengo 4 floats, que representan la transparencia, H, S, L
-  ; en realidad, xmm3
-  movups xmm3, [rbx]    ; xmm3 = [L|L|L|L | S|S|S|S | H|H|H|H | A|A|A|A]
+
+
+  ;;;; recupero xmm4 = [ll | ss | hh | 00]
+  movdqu xmm4, [rsp]
+  
+  movups xmm7, [_1111]   ; xmm7 = [1 | 1 | 1 | 1]
+  pxor xmm8, xmm8      ; xmm8 = 0
+  movss xmm9, [_360]   ; xmm9 = [ x | x | x | 360.0]
+  movss xmm10, [_n360]   ; xmm10 = [ x | x | x | -360.0]
+  movss xmm11, [_256]   ; xmm11 = [ x | x | x | 256.0]
+
+
+  movups xmm3, [rbx]   ; xmn3 = [L|L|L|L | S|S|S|S | H|H|H|H | A|A|A|A]
   addps xmm3, xmm4     ; xmm3 = [l + LL | s + SS | h + HH | a + 00] 
 
   ;; Ahora tengo que hacer los if's. Para eso voy a usar dos registros
@@ -90,7 +100,7 @@ ASM_hsl2:
   movaps xmm5, xmm7    ; xmm5 = [1 | 1 | 1 | 1]
   subps xmm5, xmm3     ; xmm5 = [1-(l+LL) | 1-(s+SS) | 1-(h+HH) | 1-(a+00)]
   psrldq xmm5, 4       ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | 1-(h+HH)]
-  movss xmm5, xmm9     ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | 360     ]
+  movss xmm5, xmm10    ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | 360     ]
   pslldq xmm5, 4       ; xmm5 = [1-(l+LL) | 1-(s+SS) | 360      | 0       ]
 
 
@@ -98,7 +108,7 @@ ASM_hsl2:
   pxor xmm6, xmm6      ; xmm6 = [0 | 0 | 0 | 0]
   subps xmm6, xmm3     ; xmm5 = [-(l+LL)  | -(s+SS)  | -(h+HH)  | -(a+00) ]
   psrldq xmm6, 4       ; xmm5 = [0        | -(l+LL)  | -(s+SS)  | -(h+HH) ]
-  movss xmm6, xmm10    ; xmm5 = [0        | -(l+LL)  | -(s+SS)  | -360    ]
+  movss xmm6, xmm9     ; xmm5 = [0        | -(l+LL)  | -(s+SS)  | -360    ]
   pslldq xmm6, 4       ; xmm5 = [-(l+LL)  | -(s+SS)  | -360     | 0       ]
   
   ;; ahora tengo que comparar con los vectores 
@@ -114,7 +124,9 @@ ASM_hsl2:
   
 
   cmpltps xmm12, xmm3 ; xmm12 = 1 o 0 dependiendo
-  cmpnltps xmm13, xmm3  ; xmm13 = 1 o 0 dependiendo
+  movdqa xmm14, xmm13
+  movdqa xmm13, xmm3   ; los doy vuelta porque necesito greater than
+  cmpltps xmm13, xmm14  ; xmm13 = 1 o 0 dependiendo
 
   pand xmm5, xmm12
   pand xmm6, xmm13
@@ -136,7 +148,11 @@ ASM_hsl2:
   inc rcx
   jmp .loop
 
+
+
+
 .fin:
+  add rsp, 16
   mov rdi, rbx
   call free    ; libero la memoria que pedi
   add rsp, 8
@@ -155,49 +171,59 @@ _256: dd 256.0
 
 
 
-;puedo usar xmm0, xmm1, xmm2, xmm12, xmm13, xmm14, xmm15
-;tengo que devolver el resultado en xmm3
-;rgbTOhsl:
-;  pxor xmm3, xmm3
-;  ; xmm3 va a ser [L|S|H|A]
-;  movss xmm12, [rdi]
-;  pxor xmm13, xmm13
-;
-;  punpcklbw xmm12, xmm13  ; xmm12 = [x|x|x|x|x|x|x|x|0|B|0|G|0|B|0|A]
-;  punpcklwd xmm12, xmm13  ; xmm12 = [0|0|0|B|0|0|0|G|0|0|0|B|0|0|0|A]
-;
-;  cvtdq2ps xmm12, xmm12   ; (float) xmm12 = [0|0|0|B|0|0|0|G|0|0|0|B|0|0|0|A]
-;
-;  mov xmm0, xmm12
-;  mov xmm1, xmm12
-;  mov xmm2, xmm12
-;  
-;  psrldq xmm0, 4
-;  psrldq xmm1, 8
-;  psrldq xmm2, 12
-;
-;  movps xmm14, xmm0
-;
-;  maxss xmm0, xmm1
-;  maxss xmm0, xmm2    ; xmm0 = max
-;
-;  minss xmm1, xmm14
-;  minss xmm1, xmm2    ; xmm1 = min
-;
-;   
-;	movss xmm2, [_510]
-;
-;  addss xmm3, xmm1
-;  addss xmm3, xmm0
-;  divss xmm3, xmm2    ; xmm3 = [ 0 | 0 | 0 | L = (cmax+cmin)/510]
-;
-;
-;
-;_510: dd 510.0
-;@
+;puedo romper todos los registros
+;tengo que devolver el resultado en xmm0, xmm1, xmm2, xmm3
+_rgbTOhsl:
+ 
+  ; xmm3 va a ser [L|S|H|A]
+  movss xmm12, [rdi]
+  pxor xmm13, xmm13
 
-;me pasan por xmm3 el vector, tengo que pasarlo a rsi
-; puedo usar xmm0, xmm1, xmm2, xmm6, xmm7, xmm12, xmm13, xmm14, xmm15
+  punpcklbw xmm12, xmm13  ; xmm12 = [x|x|x|x|x|x|x|x|0|R|0|G|0|B|0|A]
+  punpcklwd xmm12, xmm13  ; xmm12 = [0|0|0|R|0|0|0|G|0|0|0|B|0|0|0|A]
+
+  cvtdq2ps xmm12, xmm12   ; (float) xmm12 = [0|0|0|R|0|0|0|G|0|0|0|B|0|0|0|A]
+  movaps xmm0, xmm12
+  movaps xmm1, xmm12
+  movaps xmm2, xmm12
+  
+  psrldq xmm0, 4
+  psrldq xmm1, 8
+  psrldq xmm2, 12
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; CALCULO DE H ;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  maxss xmm0, xmm1
+  maxss xmm0, xmm2    ; xmm0 = max
+
+  minss xmm1, xmm14
+  minss xmm1, xmm2    ; xmm1 = min
+
+  movaps xmm14, xmm0  ; xmm14 = max
+  subps xmm14, xmm1   ; xmm14 = max - min
+  
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; CALCULO DE L ;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  
+  pxor xmm3, xmm3
+
+	movaps xmm8, [_510]
+
+  addss xmm3, xmm1
+  addss xmm3, xmm0
+  divss xmm3, xmm2    ; xmm3 = [ 0 | 0 | 0 | L = (cmax+cmin)/510]
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; CALCULO DE S ;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; pasa los pixeles hsl por xmm0, xmm1, xmm2, xmm3
+; hay que devolver los 4 pixeles rgb por $r14 + 4*$rcx
 _hslTOrgb:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; calculo de c -> xmm0 ;;
@@ -276,6 +302,7 @@ _180: dd 180.0
 _240: dd 240.0
 _300: dd 300.0
 
+_510: dd 510.0, 510.0, 510.0, 510.0
 
 
 
