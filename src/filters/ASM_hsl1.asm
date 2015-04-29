@@ -98,8 +98,8 @@ ASM_hsl1:
   movaps xmm5, xmm7    ; xmm5 = [1 | 1 | 1 | 1]
   subps xmm5, xmm3     ; xmm5 = [1-(l+LL) | 1-(s+SS) | 1-(h+HH) | 1-(a+00)]
   psrldq xmm5, 4       ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | 1-(h+HH)]
-  movss xmm5, xmm10    ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | 360     ]
-  pslldq xmm5, 4       ; xmm5 = [1-(l+LL) | 1-(s+SS) | 360      | 0       ]
+  movss xmm5, xmm10    ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | -360     ]
+  pslldq xmm5, 4       ; xmm5 = [1-(l+LL) | 1-(s+SS) | -360      | 0       ]
 
 
   ;; construyo xmm6

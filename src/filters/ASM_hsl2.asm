@@ -142,14 +142,14 @@ rgbTOhslBack:
   mov rdi, rbx
   lea rsi, [r14 + 4*rcx]
 
-  ;push rcx
-  ;sub rsp, 8
-  ;call hslTOrgb
-  ;add rsp, 8
-  ;pop rcx
+  push rcx
+  sub rsp, 8
+  call hslTOrgb
+  add rsp, 8
+  pop rcx
 
-  jmp _hslTOrgb
-hslTOrgbBack:
+;  jmp _hslTOrgb
+ hslTOrgbBack:
 
   inc rcx
   jmp loop
@@ -171,7 +171,6 @@ fin:
 _256: dd 256.0
 
 
-
 ;puedo romper todos los registros
 ;tengo que devolver el resultado en xmm0
 _rgbTOhsl:
@@ -180,17 +179,17 @@ _rgbTOhsl:
   movss xmm12, [rdi]
   pxor xmm13, xmm13
 
-  punpcklbw xmm12, xmm13  ; xmm12 = [x|x|x|x|x|x|x|x|0|B|0|G|0|R|0|A]
-  punpcklwd xmm12, xmm13  ; xmm12 = [0|0|0|B|0|0|0|G|0|0|0|R|0|0|0|A]
+  punpcklbw xmm12, xmm13  ; xmm12 = [x|x|x|x|x|x|x|x|0|R|0|G|0|B|0|A]
+  punpcklwd xmm12, xmm13  ; xmm12 = [0|0|0|R|0|0|0|G|0|0|0|B|0|0|0|A]
 
   cvtdq2ps xmm12, xmm12   ; (float) xmm12 = [0|0|0|B|0|0|0|G|0|0|0|R|0|0|0|A]
   movaps xmm0, xmm12
   movaps xmm1, xmm12
   movaps xmm2, xmm12
 
-  psrldq xmm0, 4
-  psrldq xmm1, 8
-  psrldq xmm2, 12
+  psrldq xmm0, 12  ;; r
+  psrldq xmm1, 8  ;; g
+  psrldq xmm2, 4 ;; b
 
   movaps xmm14, xmm0
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -204,6 +203,7 @@ _rgbTOhsl:
 
   movaps xmm14, xmm0  ; xmm14 = max
   subps xmm14, xmm1   ; xmm14 = max - min
+  addps xmm14, [_arreglar]
 
   ;;; Lo hago feo porque hacerlo de otra forma es igual de feo
   ;;; requiere muchos extracts
@@ -212,28 +212,28 @@ _rgbTOhsl:
   movaps xmm10, xmm12
   movaps xmm11, xmm12
 
-  psrldq xmm9, 4     ;; R
-  psrldq xmm10, 8     ;; G
-  psrldq xmm11, 12    ;; B
+  psrldq xmm9, 12     ;; R
+  psrldq xmm10, 8     ;; G 
+  psrldq xmm11, 4    ;; B
 
   movss xmm4, xmm10   ; xmm4 = g
   subss xmm4, xmm11   ; xmm4 = g-b
   divss xmm4, xmm14  ; xmm4 = (g-b)/d
-  addss xmm4, [_6]   ; xmm4 = (g-b)/d + 6
+  addss xmm4, [_6]   ; xmm4 = (g-b)/d + 6 
   mulss xmm4, [_60]  ; xmm4 = 60 * ((g-b)/d + 6)
 
 
   movss xmm5, xmm11   ; xmm4 = b
   subss xmm5, xmm9   ; xmm4 = b-r
   divss xmm5, xmm14  ; xmm4 = (b-r)/d
-  addss xmm5, [_2]   ; xmm4 = (b-r)/d + 2
+  addss xmm5, [_2]   ; xmm4 = (b-r)/d + 2 
   mulss xmm5, [_60]  ; xmm4 = 60 * ((b-r)/d + 2)
 
 
   movss xmm6, xmm9   ; xmm4 = r
   subss xmm6, xmm10  ; xmm4 = r-g
   divss xmm6, xmm14  ; xmm4 = (r-g)/d
-  addss xmm6, [_4]   ; xmm4 = (r-g)/d + 4
+  addss xmm6, [_4]   ; xmm4 = (r-g)/d + 4 
   mulss xmm6, [_60]  ; xmm4 = 60 * ((r-g)/d + 4)
 
   pxor xmm13, xmm13  ; xmm13 = h definitivo
@@ -241,7 +241,7 @@ _rgbTOhsl:
   cmpeqss xmm9, xmm0 ; max == r
   pand xmm4, xmm9
   addss xmm13, xmm4
-
+  
   cmpeqss xmm9, [_0000]
 
   cmpeqss xmm10, xmm0 ; max == g
@@ -270,7 +270,7 @@ _rgbTOhsl:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   pxor xmm3, xmm3
 
-  movaps xmm8, [_510]
+	movaps xmm8, [_510]
 
   addss xmm3, xmm1
   addss xmm3, xmm0
@@ -294,12 +294,12 @@ _rgbTOhsl:
 
   subss xmm6, xmm5 ; xmm6 = 1-fabs(2*l-1)
 
-  divss xmm4, xmm6
+  divss xmm4, xmm6 
   divss xmm4, [_2550001]
-
+  
   cmpneqss xmm0, xmm1
   pand xmm4, xmm0
-
+  
 
   pxor xmm0, xmm0
   movss xmm0, xmm3
@@ -313,6 +313,8 @@ _rgbTOhsl:
   movups [rbx], xmm0
 
 jmp rgbTOhslBack
+
+
 
 ; pasa los pixeles hsl por xmm0, xmm1, xmm2, xmm3
 ; hay que devolver los 4 pixeles rgb por $r14 + 4*$rcx
