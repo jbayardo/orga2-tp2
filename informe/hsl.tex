@@ -33,6 +33,12 @@ Luego sumamos este registro con el registro que contiene los parámetros, como i
 \xmm{3}
 \regfloats{l+LL}{s+SS}{h+HH}{AA}
 
+Va a ser útil para mas adelante tener un ejemplo, así que supongamos que \xmm{3} vale
+
+\xmm{3}
+\refloats{0.5}{-0.322}{380}{255}
+
+
 Ahora comienza la operatoria de saturación, entonces vamos a armar los siguientes registros
 
 \xmm{5}
@@ -41,10 +47,59 @@ Ahora comienza la operatoria de saturación, entonces vamos a armar los siguient
 \xmm{6}
 \regfloats{-(l+LL)}{-(s+SS)}{360}{0}
 
+Siguiendo el ejemplo anterior, los registros quedarían
 
-Notar que lo que necesitamos hacer esto
+\xmm{5}
+\regfloats{0.5}{1.322}{-360}{0}
+
+\xmm{6}
+\regfloats{-0.5}{0.322}{360}{0}
 
 
 
+Entonces procedemos a formar estos registros, usando la menor cantidad de instrucciones posibles, como siempre.
 
+Luego nos armamos 2 registros más, que vamos a usar para las comparaciones
+
+\xmm{12}
+\regfloats{1}{1}{360}{256}
+
+\xmm{13}
+\regfloats{0}{0}{0}{0}
+
+
+Luego comparamos estos registros con nuestro registro \xmm{3} (nótese que como SSE carece de comparaciones de mayor o igual, hay que dar vuelta los registros y hacer una comparacion de menor o igual).
+
+Por lo tanto, con el ejemplo anterior, \xmm{12} y \xmm{13} quedan así:
+
+\xmm{12}
+\regfloats{0h}{0h}{ffffffffh}{0h}
+
+\xmm{13}
+\regfloats{0h}{ffffffffh}{0h}{0h}
+
+
+Luego les hacemos un and entre los registros \xmm{12} y \xmm{5} y entre \xmm{13} y \xmm{6}, dword a dword, de manera seleccionar lo que vamos a querer sumar. En el ejemplo esto queda
+
+
+\xmm{5}
+\regfloats{0}{0}{-360}{0}
+
+\xmm{6}
+\regfloats{0}{0.322}{0}{0}
+
+Recordemos el valor de \xmm{3}
+
+\xmm{3}
+\refloats{0.5}{-0.322}{380}{255}
+
+
+Ahora les sumamos estos registros a \xmm{3}, para terminar de llevar a cabo nuestro plan
+
+\xmm{3}
+\refloats{0.5}{0}{320}{255}
+
+Y listo, todo terminó como queríamos.
+
+Ahora solo falta volver a convertir este numero a RGB y escribirlo a la memoria, de lo que se va a ocupar la funcion hslTOrgb.
 
