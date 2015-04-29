@@ -25,6 +25,7 @@ ASM_hsl2:
   push r15
   sub rsp, 8
 
+  ;ldmxcsr [_floor]
   ; xmm0 = hh
   ; xmm1 = ss
   ; xmm2 = ll
@@ -63,19 +64,22 @@ ASM_hsl2:
 ;;;; xmm4 = [ll | ss | hh | 00]
 
 
-
-.loop:
+loop:
   cmp rcx, r15   ; si iterador = h*w, listo, terminamos
-  je .fin
+  je fin
 
   lea rdi, [r14 + 4*rcx] ; rdi = r14 + rcx
-  mov rsi, rbx         ; rsi = puntero a float
-  push rcx
-  sub rsp, 8
-  call rgbTOhsl
-  add rsp, 8
-  pop rcx
-  ; ahora en rbx tengo 4 floats, que representan la transparencia, H, S, L
+
+;  mov rsi, rbx         ; rsi = puntero a float
+;  push rcx
+;  sub rsp, 8
+; call rgbTOhsl
+; add rsp, 8
+; pop rcx
+
+  jmp _rgbTOhsl
+rgbTOhslBack:  
+; ahora en rbx tengo 4 floats, que representan la transparencia, H, S, L
 
 
   ;;;; recupero xmm4 = [ll | ss | hh | 00]
@@ -134,19 +138,24 @@ ASM_hsl2:
   addps xmm3, xmm5
   addps xmm3, xmm6
 
-
   movups [rbx], xmm3  ; lo guardo en mi posicion de memoria
   mov rdi, rbx
   lea rsi, [r14 + 4*rcx]
 
-  jmp hslTOrgb
-.hslTOrgbBack
+ push rcx
+  sub rsp, 8
+  call hslTOrgb
+  add rsp, 8
+  pop rcx
+
+; jmp hslTOrgb
+hslTOrgbBack:
 
   inc rcx
-  jmp .loop
+  jmp loop
 
 
-.fin:
+fin:
   add rsp, 16
   mov rdi, rbx
   call free    ; libero la memoria que pedi
@@ -159,24 +168,22 @@ ASM_hsl2:
   pop rbp
   ret
 
-_1111: dd 1.0, 1.0, 1.0, 1.0
-_n360: dd -360.0
 _256: dd 256.0
 
 
 
 ;puedo romper todos los registros
-;tengo que devolver el resultado en xmm0, xmm1, xmm2, xmm3
+;tengo que devolver el resultado en xmm0
 _rgbTOhsl:
 
   ; xmm3 va a ser [L|S|H|A]
   movss xmm12, [rdi]
   pxor xmm13, xmm13
 
-  punpcklbw xmm12, xmm13  ; xmm12 = [x|x|x|x|x|x|x|x|0|R|0|G|0|B|0|A]
-  punpcklwd xmm12, xmm13  ; xmm12 = [0|0|0|R|0|0|0|G|0|0|0|B|0|0|0|A]
+  punpcklbw xmm12, xmm13  ; xmm12 = [x|x|x|x|x|x|x|x|0|B|0|G|0|R|0|A]
+  punpcklwd xmm12, xmm13  ; xmm12 = [0|0|0|B|0|0|0|G|0|0|0|R|0|0|0|A]
 
-  cvtdq2ps xmm12, xmm12   ; (float) xmm12 = [0|0|0|R|0|0|0|G|0|0|0|B|0|0|0|A]
+  cvtdq2ps xmm12, xmm12   ; (float) xmm12 = [0|0|0|B|0|0|0|G|0|0|0|R|0|0|0|A]
   movaps xmm0, xmm12
   movaps xmm1, xmm12
   movaps xmm2, xmm12
@@ -185,6 +192,7 @@ _rgbTOhsl:
   psrldq xmm1, 8
   psrldq xmm2, 12
 
+  movaps xmm14, xmm0
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; CALCULO DE H ;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -197,24 +205,115 @@ _rgbTOhsl:
   movaps xmm14, xmm0  ; xmm14 = max
   subps xmm14, xmm1   ; xmm14 = max - min
 
+  ;;; Lo hago feo porque hacerlo de otra forma es igual de feo
+  ;;; requiere muchos extracts
+
+  movaps xmm9, xmm12
+  movaps xmm10, xmm12
+  movaps xmm11, xmm12
+
+  psrldq xmm9, 4     ;; R
+  psrldq xmm10, 8     ;; G 
+  psrldq xmm11, 12    ;; B
+
+  movss xmm4, xmm10   ; xmm4 = g
+  subss xmm4, xmm11   ; xmm4 = g-b
+  divss xmm4, xmm14  ; xmm4 = (g-b)/d
+  addss xmm4, [_6]   ; xmm4 = (g-b)/d + 6 
+  mulss xmm4, [_60]  ; xmm4 = 60 * ((g-b)/d + 6)
+
+
+  movss xmm5, xmm11   ; xmm4 = b
+  subss xmm5, xmm9   ; xmm4 = b-r
+  divss xmm5, xmm14  ; xmm4 = (b-r)/d
+  addss xmm5, [_2]   ; xmm4 = (b-r)/d + 2 
+  mulss xmm5, [_60]  ; xmm4 = 60 * ((b-r)/d + 2)
+
+
+  movss xmm6, xmm9   ; xmm4 = r
+  subss xmm6, xmm10  ; xmm4 = r-g
+  divss xmm6, xmm14  ; xmm4 = (r-g)/d
+  addss xmm6, [_4]   ; xmm4 = (r-g)/d + 4 
+  mulss xmm6, [_60]  ; xmm4 = 60 * ((r-g)/d + 4)
+
+  pxor xmm13, xmm13  ; xmm13 = h definitivo
+
+  cmpeqss xmm9, xmm0 ; max == r
+  pand xmm4, xmm9
+  addss xmm13, xmm4
+  
+  cmpeqss xmm9, [_0000]
+
+  cmpeqss xmm10, xmm0 ; max == g
+  pand xmm5, xmm10
+  pand xmm5, xmm9
+  addss xmm13, xmm5
+
+  cmpeqss xmm10, [_0000]
+
+  cmpeqss xmm11, xmm0 ; max == b
+  pand xmm6, xmm11
+  pand xmm6, xmm10
+  pand xmm6, xmm9
+  addss xmm13, xmm6
+
+  movss xmm11, [_n360]
+  movss xmm10, [_360]
+  cmpless xmm10, xmm13
+  pand xmm11, xmm10
+
+  addss xmm13, xmm11  ;; xmm13 = h
+  addss xmm13, [_arreglar] ;; si no hago esto, se rompe
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; CALCULO DE L ;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
   pxor xmm3, xmm3
 
 	movaps xmm8, [_510]
 
   addss xmm3, xmm1
   addss xmm3, xmm0
-  divss xmm3, xmm2    ; xmm3 = [ 0 | 0 | 0 | L = (cmax+cmin)/510]
-
+  divss xmm3, xmm8    ; xmm3 = [ 0 | 0 | 0 | L = (cmax+cmin)/510]
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; CALCULO DE S ;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  movss xmm4, xmm14 ; xmm4 = d
+  movss xmm5, xmm3  ; xmm3 = l
+  mulss xmm5, [_2]  ; xmm3 = 2*l
+  subss xmm5, [_1111] ; xmm3 = 2*l-1
+
+  pxor xmm6, xmm6
+  subss xmm6, xmm5    ; xmm6 = -(2*l-1)
+
+  maxss xmm5, xmm6  ; xmm5 = fabs(2*l-1)
+
+  movss xmm6, [_1111]
+
+  subss xmm6, xmm5 ; xmm6 = 1-fabs(2*l-1)
+
+  divss xmm4, xmm6 
+  divss xmm4, [_2550001]
+  
+  cmpneqss xmm0, xmm1
+  pand xmm4, xmm0
+  
+
+  pxor xmm0, xmm0
+  movss xmm0, xmm3
+  pslldq xmm0, 4
+  movss xmm0, xmm4
+  pslldq xmm0, 4
+  movss xmm0, xmm13
+  pslldq xmm0, 4
+  movss xmm0, xmm12
+
+  movups [rbx], xmm0
+
+jmp rgbTOhslBack
+
 
 ; pasa los pixeles hsl por xmm0, xmm1, xmm2, xmm3
 ; hay que devolver los 4 pixeles rgb por $r14 + 4*$rcx
@@ -408,10 +507,14 @@ _hslTOrgb:
   ; TODO: Mover de a 4
   movss [r14 + 4*rcx], xmm0
 
-  jmp .hslTOrgbBack
+  jmp hslTOrgbBack
 
 align 16
+_1111: dd 1.0, 1.0, 1.0, 1.0
+_0000: dd 0.0, 0.0, 0.0, 0.0
 _2: dd 2.0, 2.0, 2.0, 2.0
+_4: dd 4.0, 4.0, 4.0, 4.0
+_6: dd 6.0, 6.0, 6.0, 6.0
 _60: dd 60.0, 60.0, 60.0, 60.0
 _120: dd 120.0, 120.0, 120.0, 120.0
 _180: dd 180.0, 180.0, 180.0, 180.0
@@ -421,9 +524,16 @@ _300: dd 300.0, 300.0, 300.0, 300.0
 _360: dd 360.0, 360.0, 360.0, 360.0
 _510: dd 510.0, 510.0, 510.0, 510.0
 
+_n360: dd -360.0, -360.0, -360.0, -360.0
+
+_2550001: dd 255.0001, 255.0001, 255.0001, 255.0001
+
 _m1: db 0xF, 0xE, 0xD, 0xC, 0xB, 0xA, 0x9, 0x8, 0x7, 0x6, 0x5, 0x4, 0x3, 0x2, 0x1, 0x0
 _m2: db 0xE, 0xF, 0xD, 0xC, 0xA, 0xB, 0x9, 0x8, 0x6, 0x7, 0x5, 0x4, 0x2, 0x3, 0x1, 0x0
 _m3: db 0xD, 0xF, 0xE, 0xC, 0x9, 0xB, 0xA, 0x8, 0x5, 0x7, 0x6, 0x4, 0x1, 0x3, 0x2, 0x0
 _m4: db 0xD, 0xE, 0xF, 0xC, 0x9, 0xA, 0xB, 0x8, 0x5, 0x6, 0x7, 0x4, 0x1, 0x2, 0x3, 0x0
 _m5: db 0xE, 0xD, 0xF, 0xC, 0xA, 0x9, 0xB, 0x8, 0x6, 0x5, 0x7, 0x4, 0x2, 0x1, 0x3, 0x0
 _m6: db 0xF, 0xD, 0xE, 0xC, 0xB, 0x9, 0xA, 0x8, 0x7, 0x5, 0x6, 0x4, 0x3, 0x1, 0x2, 0x0
+
+
+_arreglar: dd 0.000001
