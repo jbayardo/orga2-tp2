@@ -42,7 +42,6 @@ ASM_hsl2:
                  ; lo voy a usar para llamar a las funciones conversoras
 
 
-
   mov rax, r12
   mul r13        ; rax = h*w (suponiendo que no hay overflow)
   mov r15, rax   ; r15 = h*w
@@ -64,9 +63,9 @@ ASM_hsl2:
 
 
 
-.loop:
+_loop:
   cmp rcx, r15   ; si iterador = h*w, listo, terminamos
-  je .fin
+  je _fin
 
   lea rdi, [r14 + 4*rcx] ; rdi = r14 + rcx
   mov rsi, rbx         ; rsi = puntero a float
@@ -78,7 +77,7 @@ ASM_hsl2:
   ; ahora en rbx tengo 4 floats, que representan la transparencia, H, S, L
 
 
-  ;;;; recupero xmm4 = [ll | ss | hh | 00]
+  ;;;; xmm4 = [ll | ss | hh | 00]
   movdqu xmm4, [rsp]
 
   movups xmm7, [_1111]   ; xmm7 = [1 | 1 | 1 | 1]
@@ -139,17 +138,16 @@ ASM_hsl2:
   mov rdi, rbx
   lea rsi, [r14 + 4*rcx]
 
-  jmp hslTOrgb
-.hslTOrgbBack
+  jmp _hslTOrgb
+_hslTOrgbBack:
 
   inc rcx
-  jmp .loop
+  jmp _loop
 
-
-.fin:
+_fin:
   add rsp, 16
   mov rdi, rbx
-  call free    ; libero la memoria que pedi
+  call free
   add rsp, 8
   pop r15
   pop r14
@@ -163,75 +161,22 @@ _1111: dd 1.0, 1.0, 1.0, 1.0
 _n360: dd -360.0
 _256: dd 256.0
 
-
-
-;puedo romper todos los registros
-;tengo que devolver el resultado en xmm0, xmm1, xmm2, xmm3
-_rgbTOhsl:
-
-  ; xmm3 va a ser [L|S|H|A]
-  movss xmm12, [rdi]
-  pxor xmm13, xmm13
-
-  punpcklbw xmm12, xmm13  ; xmm12 = [x|x|x|x|x|x|x|x|0|R|0|G|0|B|0|A]
-  punpcklwd xmm12, xmm13  ; xmm12 = [0|0|0|R|0|0|0|G|0|0|0|B|0|0|0|A]
-
-  cvtdq2ps xmm12, xmm12   ; (float) xmm12 = [0|0|0|R|0|0|0|G|0|0|0|B|0|0|0|A]
-  movaps xmm0, xmm12
-  movaps xmm1, xmm12
-  movaps xmm2, xmm12
-
-  psrldq xmm0, 4
-  psrldq xmm1, 8
-  psrldq xmm2, 12
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; CALCULO DE H ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  maxss xmm0, xmm1
-  maxss xmm0, xmm2    ; xmm0 = max
-
-  minss xmm1, xmm14
-  minss xmm1, xmm2    ; xmm1 = min
-
-  movaps xmm14, xmm0  ; xmm14 = max
-  subps xmm14, xmm1   ; xmm14 = max - min
-
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; CALCULO DE L ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-  pxor xmm3, xmm3
-
-	movaps xmm8, [_510]
-
-  addss xmm3, xmm1
-  addss xmm3, xmm0
-  divss xmm3, xmm2    ; xmm3 = [ 0 | 0 | 0 | L = (cmax+cmin)/510]
-
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; CALCULO DE S ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 ; pasa los pixeles hsl por xmm0, xmm1, xmm2, xmm3
 ; hay que devolver los 4 pixeles rgb por $r14 + 4*$rcx
 _hslTOrgb:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; calculo de h -> xmm5 ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
-  movss xmm5, xmm0
-  pslld xmm5, 4
-
-  movss xmm5, xmm1
+  movss xmm5, xmm3
   pslld xmm5, 4
 
   movss xmm5, xmm2
   pslld xmm5, 4
 
-  movss xmm5, xmm3
+  movss xmm5, xmm1
+  pslld xmm5, 4
+
+  movss xmm5, xmm0
   pslld xmm5, 4
 
   ; xmm5 = [H0 | H1 | H2 | H3]
@@ -408,7 +353,7 @@ _hslTOrgb:
   ; TODO: Mover de a 4
   movss [r14 + 4*rcx], xmm0
 
-  jmp .hslTOrgbBack
+  jmp _hslTOrgbBack
 
 align 16
 _2: dd 2.0, 2.0, 2.0, 2.0
