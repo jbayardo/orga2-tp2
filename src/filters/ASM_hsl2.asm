@@ -5,14 +5,72 @@
 ;                                                                           ;
 ; ************************************************************************* ;
 
+section .data
+align 16
+setRGBA: db 0xFF
+align 16
+_256: dd 256.0
+align 16
+_1111: dd 1.0, 1.0, 1.0, 1.0
+align 16
+_0000: dd 0.0, 0.0, 0.0, 0.0
+align 16
+_2: dd 2.0, 2.0, 2.0, 2.0
+align 16
+_4: dd 4.0, 4.0, 4.0, 4.0
+align 16
+_6: dd 6.0, 6.0, 6.0, 6.0
+align 16
+_60: dd 60.0, 60.0, 60.0, 60.0
+align 16
+_120: dd 120.0, 120.0, 120.0, 120.0
+align 16
+_180: dd 180.0, 180.0, 180.0, 180.0
+align 16
+_240: dd 240.0, 240.0, 240.0, 240.0
+align 16
+_255: dd 255.0, 255.0, 255.0, 255.0
+align 16
+_300: dd 300.0, 300.0, 300.0, 300.0
+align 16
+_360: dd 360.0, 360.0, 360.0, 360.0
+align 16
+_510: dd 510.0, 510.0, 510.0, 510.0
+align 16
+_n360: dd -360.0, -360.0, -360.0, -360.0
+align 16
+_2550001: dd 255.0001, 255.0001, 255.0001, 255.0001
+
+
+
+align 16
+_m1: db 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x1, 0x3
+align 16
+_m2: db 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0x1, 0x2
+align 16
+_m3: db 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0x2, 0x1
+align 16
+_m4: db 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x3, 0x1
+align 16
+_m5: db 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x3, 0x2
+align 16
+_m6: db 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x2, 0x3
+align 16
+_arreglar: dd 0.000001
+align 16
+
+; RGBA
+; ABGR <- Como los quiero en el registro
+;              A
+; [C | X | M | 0]
+section .text
+
 %define TAMANIO_PIXEL_HSL 16
 
 extern rgbTOhsl
 extern hslTOrgb
 extern malloc
 extern free
-
-
 ; void ASM_hsl2(uint32_t w, uint32_t h, uint8_t* data, float hh, float ss, float ll)
 global ASM_hsl2
 ASM_hsl2:
@@ -25,7 +83,7 @@ ASM_hsl2:
   push r15
   sub rsp, 8
 
-  ;ldmxcsr [_floor]
+  ldmxcsr [_floor]
   ; xmm0 = hh
   ; xmm1 = ss
   ; xmm2 = ll
@@ -64,22 +122,17 @@ ASM_hsl2:
 ;;;; xmm4 = [ll | ss | hh | 00]
 
 
-loop:
+
+_loop:
   cmp rcx, r15   ; si iterador = h*w, listo, terminamos
-  je fin
+  je _fin
 
   lea rdi, [r14 + 4*rcx] ; rdi = r14 + rcx
-
-;  mov rsi, rbx         ; rsi = puntero a float
-;  push rcx
-;  sub rsp, 8
-; call rgbTOhsl
-; add rsp, 8
-; pop rcx
+  mov rsi, rbx         ; rsi = puntero a float
 
   jmp _rgbTOhsl
 rgbTOhslBack:
-; ahora en rbx tengo 4 floats, que representan la transparencia, H, S, L
+  ; ahora en rbx tengo 4 floats, que representan la transparencia, H, S, L
 
 
   ;;;; recupero xmm4 = [ll | ss | hh | 00]
@@ -101,7 +154,7 @@ rgbTOhslBack:
   ;; notar que basta seleccionar cuales quiero usar (haciendo and) y sumandolos
 
   ;; construyo xmm5
-  movaps xmm5, xmm7    ; xmm5 = [1 | 1 | 1 | 1]
+  movups xmm5, xmm7    ; xmm5 = [1 | 1 | 1 | 1]
   subps xmm5, xmm3     ; xmm5 = [1-(l+LL) | 1-(s+SS) | 1-(h+HH) | 1-(a+00)]
   psrldq xmm5, 4       ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | 1-(h+HH)]
   movss xmm5, xmm10    ; xmm5 = [0        | 1-(l+LL) | 1-(s+SS) | 360     ]
@@ -119,7 +172,7 @@ rgbTOhslBack:
   ;; [1 | 1 | 360 | 256] = xmm12
   ;; [0 | 0 | 0   | 0  ] = xmm13
 
-  movaps xmm12, xmm7   ; xmm7 = [1 | 1 | 1 | 1]
+  movups xmm12, xmm7   ; xmm7 = [1 | 1 | 1 | 1]
   movss xmm12, xmm9    ; xmm7 = [1 | 1 | 1 | 360]
   pslldq xmm12, 4      ; xmm7 = [1 | 1 | 360 | 0]
   movss xmm12, xmm11   ; xmm7 = [1 | 1 | 360 | 256]
@@ -138,24 +191,13 @@ rgbTOhslBack:
   addps xmm3, xmm5
   addps xmm3, xmm6
 
-  movups [rbx], xmm3  ; lo guardo en mi posicion de memoria
-  mov rdi, rbx
-  lea rsi, [r14 + 4*rcx]
-
-  push rcx
-  sub rsp, 8
-  call hslTOrgb
-  add rsp, 8
-  pop rcx
-
-;  jmp _hslTOrgb
- hslTOrgbBack:
+  jmp _hslTOrgb
+hslTOrgbBack:
 
   inc rcx
-  jmp loop
+  jmp _loop
 
-
-fin:
+_fin:
   add rsp, 16
   mov rdi, rbx
   call free    ; libero la memoria que pedi
@@ -167,9 +209,6 @@ fin:
   pop rbx
   pop rbp
   ret
-
-_256: dd 256.0
-
 
 ;puedo romper todos los registros
 ;tengo que devolver el resultado en xmm0
@@ -183,15 +222,15 @@ _rgbTOhsl:
   punpcklwd xmm12, xmm13  ; xmm12 = [0|0|0|R|0|0|0|G|0|0|0|B|0|0|0|A]
 
   cvtdq2ps xmm12, xmm12   ; (float) xmm12 = [0|0|0|B|0|0|0|G|0|0|0|R|0|0|0|A]
-  movaps xmm0, xmm12
-  movaps xmm1, xmm12
-  movaps xmm2, xmm12
+  movups xmm0, xmm12
+  movups xmm1, xmm12
+  movups xmm2, xmm12
 
   psrldq xmm0, 12  ;; r
   psrldq xmm1, 8  ;; g
   psrldq xmm2, 4 ;; b
 
-  movaps xmm14, xmm0
+  movups xmm14, xmm0
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; CALCULO DE H ;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -201,39 +240,39 @@ _rgbTOhsl:
   minss xmm1, xmm14
   minss xmm1, xmm2    ; xmm1 = min
 
-  movaps xmm14, xmm0  ; xmm14 = max
+  movups xmm14, xmm0  ; xmm14 = max
   subps xmm14, xmm1   ; xmm14 = max - min
   addps xmm14, [_arreglar]
 
   ;;; Lo hago feo porque hacerlo de otra forma es igual de feo
   ;;; requiere muchos extracts
 
-  movaps xmm9, xmm12
-  movaps xmm10, xmm12
-  movaps xmm11, xmm12
+  movups xmm9, xmm12
+  movups xmm10, xmm12
+  movups xmm11, xmm12
 
   psrldq xmm9, 12     ;; R
-  psrldq xmm10, 8     ;; G 
+  psrldq xmm10, 8     ;; G
   psrldq xmm11, 4    ;; B
 
   movss xmm4, xmm10   ; xmm4 = g
   subss xmm4, xmm11   ; xmm4 = g-b
   divss xmm4, xmm14  ; xmm4 = (g-b)/d
-  addss xmm4, [_6]   ; xmm4 = (g-b)/d + 6 
+  addss xmm4, [_6]   ; xmm4 = (g-b)/d + 6
   mulss xmm4, [_60]  ; xmm4 = 60 * ((g-b)/d + 6)
 
 
   movss xmm5, xmm11   ; xmm4 = b
   subss xmm5, xmm9   ; xmm4 = b-r
   divss xmm5, xmm14  ; xmm4 = (b-r)/d
-  addss xmm5, [_2]   ; xmm4 = (b-r)/d + 2 
+  addss xmm5, [_2]   ; xmm4 = (b-r)/d + 2
   mulss xmm5, [_60]  ; xmm4 = 60 * ((b-r)/d + 2)
 
 
   movss xmm6, xmm9   ; xmm4 = r
   subss xmm6, xmm10  ; xmm4 = r-g
   divss xmm6, xmm14  ; xmm4 = (r-g)/d
-  addss xmm6, [_4]   ; xmm4 = (r-g)/d + 4 
+  addss xmm6, [_4]   ; xmm4 = (r-g)/d + 4
   mulss xmm6, [_60]  ; xmm4 = 60 * ((r-g)/d + 4)
 
   pxor xmm13, xmm13  ; xmm13 = h definitivo
@@ -241,7 +280,7 @@ _rgbTOhsl:
   cmpeqss xmm9, xmm0 ; max == r
   pand xmm4, xmm9
   addss xmm13, xmm4
-  
+
   cmpeqss xmm9, [_0000]
 
   cmpeqss xmm10, xmm0 ; max == g
@@ -270,7 +309,7 @@ _rgbTOhsl:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   pxor xmm3, xmm3
 
-	movaps xmm8, [_510]
+	movups xmm8, [_510]
 
   addss xmm3, xmm1
   addss xmm3, xmm0
@@ -294,12 +333,12 @@ _rgbTOhsl:
 
   subss xmm6, xmm5 ; xmm6 = 1-fabs(2*l-1)
 
-  divss xmm4, xmm6 
+  divss xmm4, xmm6
   divss xmm4, [_2550001]
-  
+
   cmpneqss xmm0, xmm1
   pand xmm4, xmm0
-  
+
 
   pxor xmm0, xmm0
   movss xmm0, xmm3
@@ -312,96 +351,89 @@ _rgbTOhsl:
 
   movups [rbx], xmm0
 
-jmp rgbTOhslBack
+  jmp rgbTOhslBack
 
 
 
-; pasa los pixeles hsl por xmm0, xmm1, xmm2, xmm3
+; pasa los pixeles hsl por xmm3
 ; hay que devolver los 4 pixeles rgb por $r14 + 4*$rcx
 _hslTOrgb:
+  ; xmm3 = [L S H X]
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; calculo de h -> xmm5 ;;
+  ;; calculo de h -> xmm4 ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
-  movss xmm5, xmm3
-  pslld xmm5, 4
-
-  movss xmm5, xmm2
-  pslld xmm5, 4
-
-  movss xmm5, xmm1
-  pslld xmm5, 4
-
-  movss xmm5, xmm0
-  pslld xmm5, 4
-
-  ; xmm5 = [H0 | H1 | H2 | H3]
+  pxor xmm4, xmm4
+  movsd xmm4, xmm3
+  psrldq xmm4, 4 ; xmm4 = [0 | 0 | 0 | H]
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; calculo de c -> xmm0 ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
-	movaps xmm0, xmm3
-	psrldq xmm0, 12  ; xmm0 = [0|0|0|L]
-  movups xmm1, [_2]
-	mulps xmm0, xmm1 ; xmm0 = [0|0|0|2*L]
-  movups xmm15, [_1111]
-	subps xmm0, xmm15 ; xmm0 = [0|0|0|2*L-1]
-	pxor xmm2, xmm2  ; xmm2 = 0
-	movups xmm1, xmm0 ; xmm1 = [0|0|0|2*L-1]
-	subps xmm2, xmm1 ; xmm2 = [0|0|0|1-2*L]
-	maxps xmm0, xmm2 ; xmm0 = [0|0|0|fabs(2*L-1)]
-	movups xmm1, xmm15
-	subps xmm1, xmm0 ; xmm1 = [x|x|x|1-fabs(2*L-1)]
   movaps xmm0, xmm3
-	psrldq xmm0, 8
-	mulps xmm0, xmm1 ; xmm0 = [x|x|x|c = ( 1 - fabs( 2*L - 1 )) * s]
+  psrldq xmm0, 12  ; xmm0 = [0|0|0|L]
+  movss xmm1, [_2]
+  mulss xmm0, xmm1 ; xmm0 = [0|0|0|2*L]
+  movaps xmm1, [_1111]
+  subss xmm0, xmm1 ; xmm0 = [0|0|0|2*L-1]
+  pxor xmm1, xmm1  ; xmm2 = 0
+  subss xmm1, xmm0 ; xmm2 = [0|0|0|1-2*L]
+  maxss xmm0, xmm1 ; xmm0 = [0|0|0|fabs(2*L-1)]
+  movups xmm1, [_1111]
+  subss xmm1, xmm0 ; xmm1 = [x|x|x|1-fabs(2*L-1)]
+  movups xmm0, xmm3
+  psrldq xmm0, 8
+  mulss xmm0, xmm1 ; xmm0 = [x|x|x|c = ( 1 - fabs( 2*L - 1 )) * s]
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; calculo de x -> xmm1 ;;
-	;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	movaps xmm1, xmm3
-	psrldq xmm1, 4
-	movups xmm15, [_60]
-	divps xmm1, xmm15 ; xmm1 = [x|x|x|H/60]
-	movaps xmm12, xmm1; xmm12 = [x|x|x|H/60]
-	movups xmm13, [_2] ; xmm13 = [x|x|x|2]
-	divps xmm12, xmm13
-	roundps xmm12, xmm12, 0 ;; CONSULTAR : modo de redondeo
-	mulps xmm12, xmm13
-	subps xmm1, xmm12  ; xmm1 = [x|x|x|n-trunc(n/d)*d = fmod(H/60, 2)]
-	movups xmm13, [_1111]
-	subps xmm1, xmm13; xmm1 = [x|x|x|fmod(H/60,2)-1]
+  movups xmm1, xmm3
+  psrldq xmm1, 4 ; xmm1 = [0 L S H]
+  movss xmm15, [_60]
+  divss xmm1, xmm15 ; xmm1 = [x|x|x|H/60]
+  movups xmm12, xmm1; xmm12 = [x|x|x|H/60]
+  movss xmm13, [_2] ; xmm13 = [x|x|x|2]
+  divss xmm12, xmm13
+  ;roundss xmm12, xmm12, 0 ;; CONSULTAR : modo de redondeo
+  mulss xmm12, xmm13
+  subss xmm1, xmm12  ; xmm1 = [x|x|x|n-trunc(n/d)*d = fmod(H/60, 2)]
+  movss xmm13, [_1111]
+  subss xmm1, xmm13; xmm1 = [x|x|x|fmod(H/60,2)-1]
   pxor xmm2, xmm2  ; xmm2 = 0
-	subps xmm2, xmm1 ; xmm2 = [0|0|0|-(fmod(H/60,2)-1)]
-	maxps xmm1, xmm2 ; xmm0 = [0|0|0|fabs(fmod(H/60, 2)-1)]
-	subps xmm13, xmm1; xmm13= [x|x|x|1-fabs(fmod(H/60, 2)-1)]
-	mulps xmm13, xmm0
-	movaps xmm1, xmm13  ; xmm1 = [x|x|x|x = C*(1-fabs(fmod(H/60,2)-1))]
+  subss xmm2, xmm1 ; xmm2 = [0|0|0|-(fmod(H/60,2)-1)]
+  maxss xmm1, xmm2 ; xmm0 = [0|0|0|fabs(fmod(H/60, 2)-1)]
+  subss xmm13, xmm1; xmm13= [x|x|x|1-fabs(fmod(H/60, 2)-1)]
+  mulss xmm13, xmm0
+  movups xmm1, xmm13  ; xmm1 = [x|x|x|x = C*(1-fabs(fmod(H/60,2)-1))]
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; calculo de m -> xmm2 ;;
-	;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  movups xmm13, [_2]
-	movups xmm2, xmm0
-	divps xmm2, xmm13
-	movups xmm14, xmm2
-	movups xmm2, xmm3
-	subps xmm2, xmm14 ; xmm2 = [x|x|x|m = L-C/2]
+  movss xmm13, [_2]
+  movss xmm2, xmm0
+  divss xmm2, xmm13
+  movss xmm14, xmm2
+
+  movss xmm2, xmm3
+  psrldq xmm2, 12
+  subss xmm2, xmm14 ; xmm2 = [x|x|x|m = L-C/2]
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;; calculo RGB           ;;
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  movaps xmm15, [_255] ; xmm15 = 255.0
+  ;xmm4 = h, xmm3 = pixel, xmm2 = m, xmm1 = x, xmm0 = c
+  movups xmm15, [_255] ; xmm15 = 255.0
 
-  addps xmm0, xmm2
-  addps xmm1, xmm2 ; Le sumo m a todos los x y todos los c
+  addss xmm0, xmm2
+  addss xmm1, xmm2 ; Le sumo m a todos los x y todos los c
 
-  mulps xmm0, xmm15 ; Registro con los c
-  mulps xmm1, xmm15 ; Registro con los x
-  mulps xmm2, xmm15 ; Registro con los 0
+  mulss xmm0, xmm15 ; Registro con los c
+  mulss xmm1, xmm15 ; Registro con los x
+  mulss xmm2, xmm15 ; Registro con los 0
 
   cvtps2dq xmm0, xmm0
   cvtps2dq xmm1, xmm1
@@ -409,132 +441,103 @@ _hslTOrgb:
 
   pxor xmm15, xmm15 ; xmm15 = 0
 
-  packusdw xmm0, xmm15 ; xmm0 = [0|0|(c1 + m1)*255 | 0|0|(c2 + m2)*255 | 0|0|(c3 + m3)*255 | 0|0|(c4 + m4)*255]
-  packusdw xmm1, xmm15 ; xmm1 = [0|0|(x1 + m1)*255 | 0|0|(x2 + m2)*255 | 0|0|(x3 + m3)*255 | 0|0|(x4 + m4)*255]
-  packusdw xmm2, xmm15 ; xmm2 = [0|0|m1 | 0|0|m2 | 0|0|m3 | 0|0|m4]
-  ; Los convierto todos a enteros de 16 bits
+  packusdw xmm0, xmm15
+  packusdw xmm1, xmm15
+  packusdw xmm2, xmm15 ; Los convierto todos a enteros de 16 bits
 
   packuswb xmm0, xmm15
   packuswb xmm1, xmm15
-  packuswb xmm2, xmm15
-  ; Los convierto todos a enteros de 8 bits
+  packuswb xmm2, xmm15 ; Los convierto todos a enteros de 8 bits
 
   psrldq xmm0, 3
   psrldq xmm1, 2
-  psrldq xmm2, 1
-  ; Shifteamos a la izquierda para que nos quede tipo escalera
+  psrldq xmm2, 1 ; Shifteamos a la izquierda para que nos quede tipo escalera
 
   paddb xmm0, xmm1
-  paddb xmm0, xmm2
-  ; [c1|x1|m1|0 | c2|x2|m2|0 | c3|x3|m3|0 | c4|x4|m4|0]
+  paddb xmm0, xmm2 ; xmm0 = [X | X | X | c4|x4|m4|0]
 
   pxor xmm14, xmm14
-  pandn xmm14, xmm14
-  ; xmm14 = 1
-
+  pandn xmm14, xmm14 ; xmm14 = 1
 
   ; Primer run, h < 60
-  movdqa xmm6, xmm5 ; xmm5 son los H
-  movdqa xmm13, [_60]
+  movups xmm6, xmm4 ; xmm4 son los H
+  movups xmm13, [_60]
   cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  movups xmm7, [_m1] ; xmm7 es la máscara posta que hay que aplicar
+  pand xmm7, xmm14
+  pand xmm7, xmm6
+  pshufb xmm0, xmm7
 
   pandn xmm6, xmm6
   pand xmm14, xmm6
-
-  movaps xmm7, [_m1]
-  pand xmm7, xmm14
-  pshufb xmm0, xmm7
 
   ; Primer run, h < 120
-  movdqa xmm6, xmm5 ; xmm5 son los H
-  movdqa xmm13, [_120]
+  movups xmm6, xmm4 ; xmm4 son los H
+  movups xmm13, [_120]
   cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  movups xmm7, [_m2] ; xmm7 es la máscara posta que hay que aplicar
+  pand xmm7, xmm14
+  pand xmm7, xmm6
+  pshufb xmm0, xmm7
 
   pandn xmm6, xmm6
   pand xmm14, xmm6
-
-  movaps xmm7, [_m2]
-  pand xmm7, xmm14
-  pshufb xmm0, xmm7
 
   ; Primer run, h < 180
-  movdqa xmm6, xmm5 ; xmm5 son los H
-  movdqa xmm13, [_180]
+  movups xmm6, xmm4 ; xmm4 son los H
+  movups xmm13, [_180]
   cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  movups xmm7, [_m3] ; xmm7 es la máscara posta que hay que aplicar
+  pand xmm7, xmm14
+  pand xmm7, xmm6
+  pshufb xmm0, xmm7
 
   pandn xmm6, xmm6
   pand xmm14, xmm6
-
-  movaps xmm7, [_m3]
-  pand xmm7, xmm14
-  pshufb xmm0, xmm7
 
   ; Primer run, h < 240
-  movdqa xmm6, xmm5 ; xmm5 son los H
-  movdqa xmm13, [_240]
+  movups xmm6, xmm4 ; xmm4 son los H
+  movups xmm13, [_240]
   cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  movups xmm7, [_m4] ; xmm7 es la máscara posta que hay que aplicar
+  pand xmm7, xmm14
+  pand xmm7, xmm6
+  pshufb xmm0, xmm7
 
   pandn xmm6, xmm6
   pand xmm14, xmm6
-
-  movaps xmm7, [_m4]
-  pand xmm7, xmm14
-  pshufb xmm0, xmm7
 
   ; Primer run, h < 300
-  movdqa xmm6, xmm5 ; xmm5 son los H
-  movdqa xmm13, [_300]
+  movups xmm6, xmm4 ; xmm4 son los H
+  movups xmm13, [_300]
   cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  movups xmm7, [_m5] ; xmm7 es la máscara posta que hay que aplicar
+  pand xmm7, xmm14
+  pand xmm7, xmm6
+  pshufb xmm0, xmm7
 
   pandn xmm6, xmm6
   pand xmm14, xmm6
-
-  movaps xmm7, [_m5]
-  pand xmm7, xmm14
-  pshufb xmm0, xmm7
 
   ; Primer run, h < 360
-  movdqa xmm6, xmm5 ; xmm5 son los H
-  movdqa xmm13, [_360]
+  movups xmm6, xmm4 ; xmm4 son los H
+  movups xmm13, [_360]
   cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+
+  movups xmm7, [_m6] ; xmm7 es la máscara posta que hay que aplicar
+  pand xmm7, xmm14
+  pand xmm7, xmm6
+  pshufb xmm0, xmm7
 
   pandn xmm6, xmm6
   pand xmm14, xmm6
 
-  movaps xmm7, [_m6]
-  pand xmm7, xmm14
-  pshufb xmm0, xmm7
-
-  ; TODO: Mover de a 4
+  pinsrb xmm0, [setRGBA], 0x3
   movss [r14 + 4*rcx], xmm0
 
   jmp hslTOrgbBack
-
-align 16
-_1111: dd 1.0, 1.0, 1.0, 1.0
-_0000: dd 0.0, 0.0, 0.0, 0.0
-_2: dd 2.0, 2.0, 2.0, 2.0
-_4: dd 4.0, 4.0, 4.0, 4.0
-_6: dd 6.0, 6.0, 6.0, 6.0
-_60: dd 60.0, 60.0, 60.0, 60.0
-_120: dd 120.0, 120.0, 120.0, 120.0
-_180: dd 180.0, 180.0, 180.0, 180.0
-_240: dd 240.0, 240.0, 240.0, 240.0
-_255: dd 255.0, 255.0, 255.0, 255.0
-_300: dd 300.0, 300.0, 300.0, 300.0
-_360: dd 360.0, 360.0, 360.0, 360.0
-_510: dd 510.0, 510.0, 510.0, 510.0
-
-_n360: dd -360.0, -360.0, -360.0, -360.0
-
-_2550001: dd 255.0001, 255.0001, 255.0001, 255.0001
-
-_m1: db 0xF, 0xE, 0xD, 0xC, 0xB, 0xA, 0x9, 0x8, 0x7, 0x6, 0x5, 0x4, 0x3, 0x2, 0x1, 0x0
-_m2: db 0xE, 0xF, 0xD, 0xC, 0xA, 0xB, 0x9, 0x8, 0x6, 0x7, 0x5, 0x4, 0x2, 0x3, 0x1, 0x0
-_m3: db 0xD, 0xF, 0xE, 0xC, 0x9, 0xB, 0xA, 0x8, 0x5, 0x7, 0x6, 0x4, 0x1, 0x3, 0x2, 0x0
-_m4: db 0xD, 0xE, 0xF, 0xC, 0x9, 0xA, 0xB, 0x8, 0x5, 0x6, 0x7, 0x4, 0x1, 0x2, 0x3, 0x0
-_m5: db 0xE, 0xD, 0xF, 0xC, 0xA, 0x9, 0xB, 0x8, 0x6, 0x5, 0x7, 0x4, 0x2, 0x1, 0x3, 0x0
-_m6: db 0xF, 0xD, 0xE, 0xC, 0xB, 0x9, 0xA, 0x8, 0x7, 0x5, 0x6, 0x4, 0x3, 0x1, 0x2, 0x0
-
-
-_arreglar: dd 0.000001
