@@ -40,7 +40,7 @@ align 16
 _n360: dd -360.0, -360.0, -360.0, -360.0
 align 16
 _2550001: dd 255.0001, 255.0001, 255.0001, 255.0001
-
+_255int: dd 255, 255, 255, 255
 
 
 align 16
@@ -367,8 +367,17 @@ _hslTOrgb:
   ;; calculo de h -> xmm4 ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
   pxor xmm4, xmm4
-  movaps xmm4, xmm3
+  movsd xmm4, xmm3
   psrldq xmm4, 4 ; xmm4 = [0 | 0 | 0 | H]
+  movss xmm6, xmm4
+  pslldq xmm4, 4
+  addss xmm4, xmm6
+  movaps xmm5, xmm4
+  pslldq xmm5, 8
+  addps xmm4, xmm5 ; xmm4 = [H | H | H | H]
+
+
+
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; calculo de c -> xmm0 ;;
@@ -400,7 +409,7 @@ _hslTOrgb:
   movups xmm12, xmm1; xmm12 = [x|x|x|H/60]
   movss xmm13, [_2] ; xmm13 = [x|x|x|2]
   divss xmm12, xmm13
-  roundss xmm12, xmm12, 0 ;; CONSULTAR : modo de redondeo
+  roundss xmm12, xmm12, 0xff ;; CONSULTAR : modo de redondeo
   mulss xmm12, xmm13
   subss xmm1, xmm12  ; xmm1 = [x|x|x|n-trunc(n/d)*d = fmod(H/60, 2)]
   movss xmm13, [_1111]
@@ -444,109 +453,262 @@ _hslTOrgb:
   cvtps2dq xmm2, xmm2 ; Los convierto todos a enteros de 32 bits
   
   
-  ;; HASTA ACA ES CORRECTO EL PROGRAMA
-  
-  
   pxor xmm15, xmm15 ; xmm15 = 0
+  movups xmm14, [_todo1]  ; xmm14 = trabajo que hice hasta ahora (1 = nada)
 
-  packusdw xmm0, xmm15
-  packusdw xmm1, xmm15
-  packusdw xmm2, xmm15 ; Los convierto todos a enteros de 16 bits
+  pxor xmm7, xmm7  ; [R|G|B|A]
+  
+;;;; RECORDAR:  EN CASO DE QUE CAMBIEN ALGO DEL CODIGO DE LA CATEDRA Y DEJE DE ANDAR, HAY QUE INTERCAMBIAR LOS c, x, 0 
+;;;;; ^^^^
+;; 60 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;en xmm13 formo el vector
+  pxor xmm13, xmm13
+  addss xmm13, xmm0 ; c
+  pslldq xmm13, 4   
+  addss xmm13, xmm1 ; x
+  pslldq xmm13, 4
+  addss xmm13, xmm2 ; 0
+  pslldq xmm13, 4
+  addss xmm13, [_255int] ; a
 
-  packuswb xmm0, xmm15
-  packuswb xmm1, xmm15
-  packuswb xmm2, xmm15 ; Los convierto todos a enteros de 8 bits
+  movaps xmm10, xmm4    ; cargo todos los h
+  cmpltps xmm10, [_60]  ; comparo con 60
 
-  psrldq xmm0, 3
-  psrldq xmm1, 2
-  psrldq xmm2, 1 ; Shifteamos a la izquierda para que nos quede tipo escalera
+  pand xmm13, xmm10
+  pand xmm13, xmm14
 
-  paddb xmm0, xmm1
-  paddb xmm0, xmm2 ; xmm0 = [X | X | X | c4|x4|m4|0]
+  pxor xmm10, [_todo1]
+  pand xmm14, xmm10
 
-  ;pxor xmm14, xmm14
-  ;pandn xmm14, xmm14 ; xmm14 = 1
-  movdqu xmm14, [_todo1]
+  paddd xmm7, xmm13
 
-  ; Primer run, h < 60
-  movups xmm6, xmm4 ; xmm4 son los H
-  movups xmm13, [_60]
-  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
 
-  movups xmm7, [_m1] ; xmm7 es la máscara posta que hay que aplicar
-  pand xmm7, xmm14
-  pand xmm7, xmm6
-  pshufb xmm0, xmm7
 
-  pandn xmm6, xmm6
-  pand xmm14, xmm6
+;; 120 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;en xmm13 formo el vector
+  pxor xmm13, xmm13
+  addss xmm13, xmm1 ; x
+  pslldq xmm13, 4   
+  addss xmm13, xmm0 ; c
+  pslldq xmm13, 4
+  addss xmm13, xmm2 ; 0
+  pslldq xmm13, 4
+  addss xmm13, [_255] ; a
 
-  ; Primer run, h < 120
-  movups xmm6, xmm4 ; xmm4 son los H
-  movups xmm13, [_120]
-  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+  movaps xmm10, xmm4    ; cargo todos los h
+  cmpltps xmm10, [_120]  ; comparo con 60
 
-  movups xmm7, [_m2] ; xmm7 es la máscara posta que hay que aplicar
-  pand xmm7, xmm14
-  pand xmm7, xmm6
-  pshufb xmm0, xmm7
+  pand xmm13, xmm10
+  pand xmm13, xmm14
 
-  pandn xmm6, xmm6
-  pand xmm14, xmm6
+  pxor xmm10, [_todo1]
+  pand xmm14, xmm10
 
-  ; Primer run, h < 180
-  movups xmm6, xmm4 ; xmm4 son los H
-  movups xmm13, [_180]
-  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+  paddd xmm7, xmm13
 
-  movups xmm7, [_m3] ; xmm7 es la máscara posta que hay que aplicar
-  pand xmm7, xmm14
-  pand xmm7, xmm6
-  pshufb xmm0, xmm7
 
-  pandn xmm6, xmm6
-  pand xmm14, xmm6
+;; 180 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;en xmm13 formo el vector
+  pxor xmm13, xmm13
+  addss xmm13, xmm2 ; 0
+  pslldq xmm13, 4   
+  addss xmm13, xmm0 ; c
+  pslldq xmm13, 4
+  addss xmm13, xmm1 ; x
+  pslldq xmm13, 4
+  addss xmm13, [_255] ; a
 
-  ; Primer run, h < 240
-  movups xmm6, xmm4 ; xmm4 son los H
-  movups xmm13, [_240]
-  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+  movaps xmm10, xmm4    ; cargo todos los h
+  cmpltps xmm10, [_180]  ; comparo con 60
 
-  movups xmm7, [_m4] ; xmm7 es la máscara posta que hay que aplicar
-  pand xmm7, xmm14
-  pand xmm7, xmm6
-  pshufb xmm0, xmm7
+  pand xmm13, xmm10
+  pand xmm13, xmm14
 
-  pandn xmm6, xmm6
-  pand xmm14, xmm6
+  pxor xmm10, [_todo1]
+  pand xmm14, xmm10
 
-  ; Primer run, h < 300
-  movups xmm6, xmm4 ; xmm4 son los H
-  movups xmm13, [_300]
-  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+  paddd xmm7, xmm13
 
-  movups xmm7, [_m5] ; xmm7 es la máscara posta que hay que aplicar
-  pand xmm7, xmm14
-  pand xmm7, xmm6
-  pshufb xmm0, xmm7
+;; 240 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;en xmm13 formo el vector
+  pxor xmm13, xmm13
+  addss xmm13, xmm2 ; 0
+  pslldq xmm13, 4   
+  addss xmm13, xmm1 ; x
+  pslldq xmm13, 4
+  addss xmm13, xmm0 ; c
+  pslldq xmm13, 4
+  addss xmm13, [_255] ; a
 
-  pandn xmm6, xmm6
-  pand xmm14, xmm6
+  movaps xmm10, xmm4    ; cargo todos los h
+  cmpltps xmm10, [_240]  ; comparo con 60
 
-  ; Primer run, h < 360
-  movups xmm6, xmm4 ; xmm4 son los H
-  movups xmm13, [_360]
-  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+  pand xmm13, xmm10
+  pand xmm13, xmm14
 
-  movups xmm7, [_m6] ; xmm7 es la máscara posta que hay que aplicar
-  pand xmm7, xmm14
-  pand xmm7, xmm6
-  pshufb xmm0, xmm7
+  pxor xmm10, [_todo1]
+  pand xmm14, xmm10
 
-  pandn xmm6, xmm6
-  pand xmm14, xmm6
+  paddd xmm7, xmm13
 
-  pinsrb xmm0, [setRGBA], 0x3
-  movss [r14 + 4*rcx], xmm0
+
+
+;; 300 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;en xmm13 formo el vector
+  pxor xmm13, xmm13
+  addss xmm13, xmm1 ; x
+  pslldq xmm13, 4   
+  addss xmm13, xmm2 ; 0
+  pslldq xmm13, 4
+  addss xmm13, xmm0 ; c
+  pslldq xmm13, 4
+  addss xmm13, [_255] ; a
+
+  movaps xmm10, xmm4    ; cargo todos los h
+  cmpltps xmm10, [_300]  ; comparo con 60
+
+  pand xmm13, xmm10
+  pand xmm13, xmm14
+
+  pxor xmm10, [_todo1]
+  pand xmm14, xmm10
+
+  paddd xmm7, xmm13
+
+
+
+;; 360 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;en xmm13 formo el vector
+  pxor xmm13, xmm13
+  addss xmm13, xmm0 ; c
+  pslldq xmm13, 4   
+  addss xmm13, xmm2 ; 0
+  pslldq xmm13, 4
+  addss xmm13, xmm1 ; x
+  pslldq xmm13, 4
+  addss xmm13, [_255] ; a
+
+  ;movaps xmm10, xmm4    ; cargo todos los h
+  ;cmpltps xmm10, [_360]  ; comparo con 60
+
+  pand xmm13, xmm10
+  pand xmm13, xmm14
+
+  pxor xmm10, [_todo1]
+  pand xmm14, xmm10
+
+  paddd xmm7, xmm13
+
+
+
+
+  packusdw xmm7, xmm15
+  packuswb xmm7, xmm15
+
+
+
+;  packusdw xmm0, xmm15
+;  packusdw xmm1, xmm15
+;  packusdw xmm2, xmm15 ; Los convierto todos a enteros de 16 bits
+;
+;  packuswb xmm0, xmm15
+;  packuswb xmm1, xmm15
+;  packuswb xmm2, xmm15 ; Los convierto todos a enteros de 8 bits
+;
+;
+;  
+;  ;; HASTA ACA ES CORRECTO EL PROGRAMA
+;  
+;  psrldq xmm0, 3
+;  psrldq xmm1, 2
+;  psrldq xmm2, 1 ; Shifteamos a la izquierda para que nos quede tipo escalera
+;
+;  paddb xmm0, xmm1
+;  paddb xmm0, xmm2 ; xmm0 = [X | X | X | c4|x4|m4|0]
+;
+;  ;pxor xmm14, xmm14
+;  ;pandn xmm14, xmm14 ; xmm14 = 1
+;  movdqu xmm14, [_todo1]
+;
+;  ; Primer run, h < 60
+;  movups xmm6, xmm4 ; xmm4 son los H
+;  movups xmm13, [_60]
+;  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+;
+;  movups xmm7, [_m1] ; xmm7 es la máscara posta que hay que aplicar
+;  pand xmm7, xmm14
+;  pand xmm7, xmm6
+;  pshufb xmm0, xmm7
+;
+;  pandn xmm6, xmm6
+;  pand xmm14, xmm6
+;
+;  ; Primer run, h < 120
+;  movups xmm6, xmm4 ; xmm4 son los H
+;  movups xmm13, [_120]
+;  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+;
+;  movups xmm7, [_m2] ; xmm7 es la máscara posta que hay que aplicar
+;  pand xmm7, xmm14
+;  pand xmm7, xmm6
+;  pshufb xmm0, xmm7
+;
+;  pandn xmm6, xmm6
+;  pand xmm14, xmm6
+;
+;  ; Primer run, h < 180
+;  movups xmm6, xmm4 ; xmm4 son los H
+;  movups xmm13, [_180]
+;  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+;
+;  movups xmm7, [_m3] ; xmm7 es la máscara posta que hay que aplicar
+;  pand xmm7, xmm14
+;  pand xmm7, xmm6
+;  pshufb xmm0, xmm7
+;
+;  pandn xmm6, xmm6
+;  pand xmm14, xmm6
+;
+;  ; Primer run, h < 240
+;  movups xmm6, xmm4 ; xmm4 son los H
+;  movups xmm13, [_240]
+;  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+;
+;  movups xmm7, [_m4] ; xmm7 es la máscara posta que hay que aplicar
+;  pand xmm7, xmm14
+;  pand xmm7, xmm6
+;  pshufb xmm0, xmm7
+;
+;  pandn xmm6, xmm6
+;  pand xmm14, xmm6
+;
+;  ; Primer run, h < 300
+;  movups xmm6, xmm4 ; xmm4 son los H
+;  movups xmm13, [_300]
+;  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+;
+;  movups xmm7, [_m5] ; xmm7 es la máscara posta que hay que aplicar
+;  pand xmm7, xmm14
+;  pand xmm7, xmm6
+;  pshufb xmm0, xmm7
+;
+;  pandn xmm6, xmm6
+;  pand xmm14, xmm6
+;
+;  ; Primer run, h < 360
+;  movups xmm6, xmm4 ; xmm4 son los H
+;  movups xmm13, [_360]
+;  cmpltps xmm6, xmm13 ; xmm6 guarda la máscara actual de hs después de la comparación
+;
+;  movups xmm7, [_m6] ; xmm7 es la máscara posta que hay que aplicar
+;  pand xmm7, xmm14
+;  pand xmm7, xmm6
+;  pshufb xmm0, xmm7
+;
+;  pandn xmm6, xmm6
+;  pand xmm14, xmm6
+;
+;  pinsrb xmm0, [setRGBA], 0x3
+  movss [r14 + 4*rcx], xmm7
 
   jmp hslTOrgbBack
