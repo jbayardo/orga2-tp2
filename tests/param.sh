@@ -17,7 +17,7 @@ TP2ALU=../bin/tp2
 DIFFER=../bin/diff
 
 DIFFBLUR=2
-DIFFMERGE=2
+DIFFMERGE=3
 DIFFHSL=5
 
 # Colores
