@@ -58,6 +58,10 @@ _m6: db 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x
 align 16
 _arreglar: dd 0.000001
 align 16
+_floor: dd 0x7F80
+
+align 16
+_todo1: dd 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff
 
 ; RGBA
 ; ABGR <- Como los quiero en el registro
@@ -363,7 +367,7 @@ _hslTOrgb:
   ;; calculo de h -> xmm4 ;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
   pxor xmm4, xmm4
-  movsd xmm4, xmm3
+  movaps xmm4, xmm3
   psrldq xmm4, 4 ; xmm4 = [0 | 0 | 0 | H]
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -391,12 +395,12 @@ _hslTOrgb:
 
   movups xmm1, xmm3
   psrldq xmm1, 4 ; xmm1 = [0 L S H]
-  movss xmm15, [_60]
-  divss xmm1, xmm15 ; xmm1 = [x|x|x|H/60]
+  ;;movss xmm15, [_60]
+  divss xmm1, [_60] ; xmm1 = [x|x|x|H/60]
   movups xmm12, xmm1; xmm12 = [x|x|x|H/60]
   movss xmm13, [_2] ; xmm13 = [x|x|x|2]
   divss xmm12, xmm13
-  ;roundss xmm12, xmm12, 0 ;; CONSULTAR : modo de redondeo
+  roundss xmm12, xmm12, 0 ;; CONSULTAR : modo de redondeo
   mulss xmm12, xmm13
   subss xmm1, xmm12  ; xmm1 = [x|x|x|n-trunc(n/d)*d = fmod(H/60, 2)]
   movss xmm13, [_1111]
@@ -413,11 +417,11 @@ _hslTOrgb:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   movss xmm13, [_2]
-  movss xmm2, xmm0
-  divss xmm2, xmm13
-  movss xmm14, xmm2
+  movss xmm2, xmm0  ; xmm2 = c
+  divss xmm2, xmm13 ; xmm2 = c/2
+  movss xmm14, xmm2 ; xmm14 = c/2
 
-  movss xmm2, xmm3
+  movaps xmm2, xmm3  ; 
   psrldq xmm2, 12
   subss xmm2, xmm14 ; xmm2 = [x|x|x|m = L-C/2]
 
@@ -438,7 +442,11 @@ _hslTOrgb:
   cvtps2dq xmm0, xmm0
   cvtps2dq xmm1, xmm1
   cvtps2dq xmm2, xmm2 ; Los convierto todos a enteros de 32 bits
-
+  
+  
+  ;; HASTA ACA ES CORRECTO EL PROGRAMA
+  
+  
   pxor xmm15, xmm15 ; xmm15 = 0
 
   packusdw xmm0, xmm15
@@ -456,8 +464,9 @@ _hslTOrgb:
   paddb xmm0, xmm1
   paddb xmm0, xmm2 ; xmm0 = [X | X | X | c4|x4|m4|0]
 
-  pxor xmm14, xmm14
-  pandn xmm14, xmm14 ; xmm14 = 1
+  ;pxor xmm14, xmm14
+  ;pandn xmm14, xmm14 ; xmm14 = 1
+  movdqu xmm14, [_todo1]
 
   ; Primer run, h < 60
   movups xmm6, xmm4 ; xmm4 son los H
