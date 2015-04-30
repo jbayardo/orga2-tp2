@@ -7,9 +7,11 @@ CFLAGS=-Wall -Wextra -pedantic -O0 -ggdb -lm -std=c99
 
 generate: generateImages.c
 	gcc $(CFLAGS) generateImages.c ../bmp/bmp.o -o generate
+	cp generate ../../exp/
 
 runTests: runTests.c
 	gcc $(CFLAGS) runTests.c ../filters/*.o ../bmp/bmp.o -o runTests -lm
+	cp runTests ../../exp/
 
 clean:
 	rm  -f *.o generate runTests
