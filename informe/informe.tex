@@ -26,7 +26,7 @@
 \usepackage{subcaption}
 
 \usepackage{listings}
-\usepackage{algpseudocode}
+\usepackage[]{algorithm2e}
 
 \DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
 
@@ -44,6 +44,16 @@
 \title{Organización del Computador II \\ TP2}
 
 \newcommand{\order}[1]{$\mathcal{O}(#1)$}
+
+\usetikzlibrary{calc}
+
+\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \node (#1) {};}
+\newcommand{\DrawBox}[1][]{%
+    \tikz[overlay,remember picture]{
+    \draw[red,#1]
+      ($(left)+(-0.2em,0.9em)$) rectangle
+      ($(right)+(0.2em,-0.3em)$);}
+}
 
 %%%%%%%%%% Macros misceláneos - Inicio %%%%%%%%%%
 \newcommand{\xmm}[1]{\texttt{XMM#1}\ }
@@ -80,7 +90,7 @@
 \hline
 Integrante       & \multicolumn{1}{c}{LU}     & Correo electrónico        \\ \hline
 Martin Baigorria & \multicolumn{1}{c}{575/14} & martinbaigorria@gmail.com \\ 
-Martin Baigorria & 575/14                      & martinbaigorria@gmail.com \\
+Julián Bayardo & 850/13                      & julian@bayardo.com.ar \\
 Gonzalo Ciruelos Rodríguez & 063/14           & gonzalo.ciruelos@gmail.com \\ \hline
 \end{tabular}
 \end{table}
@@ -112,21 +122,13 @@ Segunda entrega &         &      \\ \hline
 
 \input{blur}
 \newpage
-\input{exp_blur}
-
-\newpage
 
 \input{merge}
-\newpage
-\input{exp_merge}
-
 \newpage
 
 \input{hsl}
 \newpage
-\input{exp_hsl}
 
-\newpage
 \input{conclusion}
 
 \end{document}

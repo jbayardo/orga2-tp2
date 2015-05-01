@@ -1,31 +1,25 @@
 \section{Blur}
 
 \subsection{Introducción}
-Blur es un filtro que suaviza la imagen. Esto lo hace asignándole a cada pixel el promedio (media aritmética) con sus pixeles vecinos. Es decir:
+Blur es un filtro que suaviza la imagen. Esto lo hace asignándole a cada píxel el promedio (media aritmética) con sus píxeles vecinos. Es decir:
 
-% todo: hacer que se vea bien esto...
-$m[j][i][k] = (m[j-1][i-1][k] + m[j-1][i][k] + m[j-1][i+1][k] + \\
-m[j] [i-1][k] + m[j] [i][k] + m[j] [i+1][k] + \\
-m[j+1][i-1][k] + m[j+1][i][k] + m[j+1][i+1][k] ) / 9$
+$$m_{i, j} = (m_{i-1, j-1} + m_{i-1, j} + m_{i-1, j+1} + m_{i, j-1} + m_{i, j} + m_{i, j+1} + m_{i+1, j-1} + m_{i+1, j} + m_{i+1, j+1}) / 9$$
 
-Notar que esto significa que no vamos a procesar los pixeles en los bordes. Esto se debe a que no tienen la cantidad suficiente de pixeles vecinos.
+Las consecuencias de adoptar este método son fundamentalmente dos; en primer lugar, nótese que esto significa que no vamos a procesar los píxeles en los bordes, ya que no tienen la cantidad suficiente de píxeles vecinos.
 
-También debemos tener en cuenta el hecho de que a medida que procesemos pixeles, no podemos simplemente pisarlos en memoria. Esto se debe a que un pixel adyacente luego lo puede necesitar para calcular el promedio, por lo que estaríamos mezclando la imagen nueva y la vieja. Hay dos opciones para resolver este problema:
-\begin{enumerate}
-\item Asignar en memoria un nuevo espacio para guardar los nuevos pixeles. Luego se deben agregar los bordes que no fueron procesados.
-\item En primer lugar, guardar las primeras dos filas del la imagen en una nueva posición de memoria. De esa manera podemos pisar los pixeles sobre la imagen original, evitar pedir demasiada memoria y tener que rearmar la imagen al final.
-\end{enumerate}
-La opción mas elegante y sin lugar a duda correcta es la 2, ya que en términos de construcción y de memoria es mucho mas eficiente.
+En segundo lugar, debemos tener en cuenta que el cálculo de blur en particular requiere utilizar datos de los elementos aledaños en la matriz, por lo que es imposible procesar la imagen con una complejidad espacial de $O(1)$, de cualquier forma debemos incurrir en un costo de espacio. Evaluamos dos formas de solucionar este problema:
 
-\subsection{C}
-El filtro blur de la cátedra en primer lugar guarda los valores de los pixeles en la primera fila. Arranca en la segunda fila, la copia, y va procesando todos los pixeles de a uno, tomando el promedio de cada componente y reemplazandolo en el mapa de pixeles principal. Esto lo hace por medio de dos loops anidados, uno que recorre las filas, y otro que recorre las columnas. A medida que pasa de fila, intercambia los punteros de la fila recién copiada y la ultima fila copiada. Esto se debe a que cuando pasamos de fila ya no nos interesa saber cuales eran los valores originales dos filas antes. Luego copia la fila actual en el puntero a la fila mas vieja. Se ignora la primera y la ultima fila, y también la primera y la ultima columna. Esto se debe a que no tienen la cantidad suficiente de pixeles vecinos.
+\begin{itemize}
+\item La primera, crear una nueva matriz en memoria con las mismas dimensiones que la matriz procesada, para poder calcular utilizando los datos originales y guardar en esta matriz. Este método tiene la desventaja de tener una complejidad espacial de $O(w*h)$, fuera de que se agrega un $O(w*h)$ de complejidad temporal para copiar los datos desde la nueva matriz creada hacia la matriz original. Además, este método tiene la desventaja de tener que cuidarse en el copiado para no sobre escribir el borde de la matriz original.
 
-Insert pseudo-code here?
+\item La segunda, seguir la metodología utilizada en el código de C provisto por la cátedra: mantener dos punteros a memoria de tamaño $w$ que guarden las dos primeras filas originales de la matriz que estamos procesando, y vayan corriéndose a medida que aumentamos la cantidad de filas. Este método toma $O(w)$ de complejidad espacial, con un $O(w)$ de complejidad temporal en el ciclo principal de las filas, para poder copiar los nuevos datos. La ventaja de este método con respecto al anterior reside en el menor uso de memoria, ya que en términos de complejidad temporal el trabajo se amortiza a lo largo de los ciclos.
+\end{itemize}
 
-\pagebreak
+Terminamos optando por el segundo método, en favor de la mejoría de complejidad espacial a cambio de un golpe en la complejidad conceptual del algoritmo y mayor dificultad en el código fuente. Procedemos a desarrollar los casos particulares de nuestras implementaciones.
 
 \subsection{ASM1}
-Siguiendo la idea del código en C, ASM1 recorre el mapa de pixeles de la misma manera. El código en C procesa cada componente del pixel por separado, mientras que la idea de esta version es procesar todos los componentes de un pixel con SSE. La idea nuevamente es iterar toda la imagen, primero por filas y luego por columnas, reemplazando los pixeles en las posiciones correspondientes.
+
+Siguiendo la idea del código en C, ASM1 recorre el mapa de píxeles de la misma manera. El código en C procesa cada componente del píxel por separado, mientras que la idea de esta versión es procesar todos los componentes de un píxel con SSE. La idea nuevamente es iterar toda la imagen, primero por filas y luego por columnas, reemplazando los píxeles en las posiciones correspondientes.
 
 \begin{table}[h]
 \mem
@@ -39,7 +33,7 @@ Siguiendo la idea del código en C, ASM1 recorre el mapa de pixeles de la misma 
 \end{table}
 En primer lugar, copiamos la fila correspondiente al contador de filas. Esto da inicio al loop de las filas.
 
-Luego, en el loop de las columnas, buscamos en la copia de la primera fila los 4 pixeles (16 bytes) correspondientes al iterador actual de las columnas. Cada pixel ocupa 32 bits, 1 byte por cada componente ARGB. En la memoria, los archivos $.bmp$ guardan los componentes de los pixeles en el orden A B G R. Como la arquitectura Intel es little-endian, al mover estos pixeles a un registro, no solo se invertira el orden de los pixeles sino que también el de sus componentes.
+Luego, en el loop de las columnas, buscamos en la copia de la primera fila los 4 píxeles (16 bytes) correspondientes al iterador actual de las columnas. Cada píxel ocupa 32 bits, 1 byte por cada componente ARGB. En la memoria, los archivos $.bmp$ guardan los componentes de los píxeles en el orden A B G R. Como la arquitectura Intel es little-endian, al mover estos píxeles a un registro, no solo se invertirá el orden de los píxeles sino que también el de sus componentes.
 
 \mem
 \regfloats{$A_1B_1G_1R_1$}{$A_2B_2G_2R_2$}{$A_4B_3G_3R_3$}{$A_4B_4G_4R_4$}
@@ -47,12 +41,12 @@ Luego, en el loop de las columnas, buscamos en la copia de la primera fila los 4
 \xmm{1}
 \regfloats{$R_4G_4B_4A_4$}{$R_4G_3B_3A_3$}{$R_2G_2B_2A_2$}{$R_1G_1B_1A_1$}
 
-Aquí nosotros hemos levantado 4 pixeles de memoria. Sin embargo notar que para el promedio de los vecinos de un pixel solo necesitamos los 3 primeros. Por lo tanto limpiamos el registro \xmm{1} con un shift a la izquierda y luego uno a la derecha:
+Aquí nosotros hemos levantado 4 píxeles de memoria. Sin embargo notar que para el promedio de los vecinos de un píxel solo necesitamos los 3 primeros. Por lo tanto limpiamos el registro \xmm{1} con un shift a la izquierda y luego uno a la derecha:
 
 \xmm{1}
 \regfloats{$0$}{$R_4G_3B_3A_3$}{$R_2G_2B_2A_2$}{$R_1G_1B_1A_1$}
 
-Luego, hacemos las operaciones de empaquetado y desempaquetado para expandir el tamaño de cada componente de pixel de 8 a 16 bits. Esto lo hacemos para que mas adelante cuando tengamos que sumar no tengamos overflow al sumar los componentes de dos pixeles.
+Luego, hacemos las operaciones de empaquetado y desempaquetado para expandir el tamaño de cada componente de píxel de 8 a 16 bits. Esto lo hacemos para que mas adelante cuando tengamos que sumar no tengamos overflow al sumar los componentes de dos píxeles.
 
 \xmm{1}
 \regintOcho{$R_2$}{$G_2$}{$B_2$}{$A_2$}{$R_1$}{$G_1$}{$B_1$}{$A_1$}
@@ -76,7 +70,7 @@ Repetimos este procedimiento tres veces, uno para cada fila. Finalmente nos qued
 \xmm{3}
 \regintOcho{$R_{10}$}{$G_{10}$}{$B_{10}$}{$A_{10}$}{$R_9$+$R_{11}$}{$G_9$+$G_{11}$}{$B_9$+$B_{11}$}{$A_9$+$A_{11}$}
 
-Ahora sumamos los tres registros en \xmm{1}. Por cuestiones de claridad, lo representamos de a pixeles únicos:
+Ahora sumamos los tres registros en \xmm{1}. Por cuestiones de claridad, lo representamos de a píxeles únicos:
 
 \xmm{1}
 \regintOcho{3B}{3G}{3B}{3A}{6R}{6G}{6B}{6A}
@@ -91,26 +85,97 @@ Sumando \xmm{1} y \xmm{2} en \xmm{1}:
 \xmm{1}
 \regintOcho{3B}{3G}{3B}{3A}{9R}{9G}{9B}{9A}
 
-Ahora empaqueto la parte baja del registro para que cada componente de cada pixel pase de 1 a 2 bytes y poder ganar presicion al momento de dividir por 9.
+Ahora empaqueto la parte baja del registro para que cada componente de cada píxel pase de 1 a 2 bytes y poder ganar precisión al momento de dividir por 9.
 
 \xmm{1}
 \regfloats{9R}{9G}{9B}{9A}
 
-Tomo el promedio de los componentes de cada pixel dividiendo por el registro \regfloats{9.0}{9.0}{9.0}{9.0}.
+Tomo el promedio de los componentes de cada píxel dividiendo por el registro \regfloats{9.0}{9.0}{9.0}{9.0}.
 
 \xmm{1}
 \regfloats{$R_p$}{$G_p$}{$B_p$}{$A_p$}
 
 Finalmente escribo el registro en la posición de memoria correspondiente. Luego incremento el contador de las columnas o de las filas y vuelvo al ciclo correspondiente.
 
-\pagebreak
-
 \subsection{ASM2}
 
-\pagebreak
+En este caso, procedimos a procesar la imagen de a 4 píxeles (es decir, de a 16 bytes). Para lograrlo, nuestra idea fue dividir la imagen en matrices de 3x6:
+
+$$\begin{pmatrix}
+P_1 & P_2 & P_3 & P_4 & P_5 & P_6 & Q_1 & \cdots\\
+P_7 & P_8 & P_9 & P_{10} & P_{11} & P_{12} & Q_2 & \cdots\\
+P_{13} & P_{14} & P_{15} & P_{16}& P_{17} & P_{18} & Q_3 & \cdots\\
+Q_4 & Q_5 & Q_6 & Q_7 & Q_8 & Q_9 & Q_{10} & \cdots\\
+\vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \ddots\\
+\end{pmatrix}$$
+
+En donde buscamos procesar $P_8$, ..., $P_{11}$ en una sola iteración, corriéndonos de submatriz a medida de avanzamos: cuando terminamos de procesar $P_{11}$ tenemos que corrernos a la submatriz que comienza en $P_5$ para continuar con el siguiente bache de píxeles. Esto nos presentó tres problemas fundamentales:
+
+El primero, cómo iterar la matriz, se resuelve observando que teniendo a \rax como un puntero a la esquina superior izquierda de la matriz es muy simple hacer referencia en memoria a las posiciones de la matriz: tenemos que $\rax + 4*j$ es el $j + 1$-ésimo píxel en la fila actual respecto del primer píxel, por lo que si tomamos $j \in \{0, ..., 5\}$ tenemos a todos los píxeles de la primer fila. Luego, si queremos indexar otra fila, podemos tomar $\rax + 4*w*i$, que nos determina al primer elemento en la $i$-ésima fila por debajo de la primera (en el ejemplo, si tomamos $i = 1$, esto apunta a la dirección de memoria de $P_7$), en este caso tenemos que $i \in \{0, 1, 2\}$.
+
+Es decir, mantener este puntero nos permite iterar la matriz por bloques de 3x6 con la única contra de tener que actualizar el puntero a \rax cada vez que queremos cambiar de submatriz: $\rax = \rax + 16$ es un movimiento obligatorio cada vez que procesamos los cuatro píxeles que corresponden a un ciclo. Además, tenemos que mantener el número de fila en el que estamos.
+
+El segundo problema es inherente a la forma de iterar que elegimos: dado que las imágenes que procesamos cumplen que $4 | w$, siempre que estemos indexando de la forma indicada terminaremos procesando 2 píxeles de más al final de cada fila (es decir, los dos píxeles del borde). La forma que encontramos de resolver esto es a través de una simple comparación: en cada iteración verificaremos si estamos en el borde; en caso de estarlo, simplemente nos correremos dos píxeles hacia atrás y volveremos a procesar los dos píxeles anteriores. El beneficio de este método es que logra ser conceptualmente muy simple, y agrega una cantidad de instrucciones insignificante para el cálculo de complejidad. Además, es muy simple de implementar, en comparación con otras alternativas como comenzar a procesar de a un píxel a partir del borde.
+
+El tercer y último problema es cómo efectuar los cálculos de blur. Intentamos hacerlo de la forma que nos pareció más intuitivo, nos armamos registros con la forma:
+
+$$xmm_2 = \begin{pmatrix} P_2 + P_8 + P_{14} & P_1 + P_7 + P_{13} \end{pmatrix}$$
+
+$$xmm_1 = \begin{pmatrix} P_4 + P_{10} + P_{16} & P_3 + P_9 + P_{15}\end{pmatrix}$$
+
+$$xmm_3 = \begin{pmatrix} P_6 + P_{12} + P_{18} & P_5 + P_{11} + P_{17}\end{pmatrix}$$
+
+Cabe destacar que cada una de las columnas de estos registros se corresponde con una columna de la submatriz, por lo que basta con sumar las columnas de forma adecuada y dividir el resultado por 9 (con las conversiones implícitas para preservar la precisión) a fines de obtener el valor RGBA que queremos para cada píxel. En concreto, nuestro algoritmo sigue el siguiente pseudocódigo:
+
+\begin{algorithm}[H]
+\DontPrintSemicolon
+\SetKwData{Left}{left}\SetKwData{This}{this}\SetKwData{Up}{up}
+\SetKwFunction{Swap}{Swap}
+\SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
+
+ \Input{Puntero a la matriz de píxeles representando la imagen, $w$ su ancho, $h$ su altura}
+ \Output{La matriz de píxeles se actualizo, habiendosele aplicado blur}
+ \BlankLine
+ crear vectores de para las primeras filas ($r10$ y $r11$)\;
+ $r10 \gets$ fila $0$ de la matriz (copiada)\;
+ inicializar el indice $rax$ a la submatriz\;
+ \BlankLine
+ \For{$i \gets 1$ \KwTo $h - 2$} {
+    $rax \gets$ nuevo índice de la submatriz, $rax + i*w*4$\;
+    \Swap($r10$, $r11$)\;
+    $r10 \gets$ fila $i$ de la matriz (copiada)\;
+    $rax \gets$ nuevo indice de la submatriz, $rax + i*w*4$\;
+    \BlankLine
+    \For{$j \gets 1$ \KwTo $w - 2$} {
+        \If{$j == w-3$} {
+            $j \gets j - 2$\;
+        }
+        \BlankLine
+        copiar datos de $r10$ y $r11$ a los registros $XMM$\;
+        convertir las componentes de los registros a enteros de 16 bits\;
+        reordenar los registros para que queden de a columnas\;
+        sumar los registros, ahora hay 3 registros con las 6 columnas\;
+        \BlankLine
+        \For{$k \gets 0$ \KwTo 3} {
+            sumar las columnas necesarias para el $k$-esimo pixel\;
+            convertir los canales a float\;
+            dividirlos por 9\;
+            convertir todo de vuelta a 1 byte con saturacion\;
+            guardar el pixel en memoria\;
+        }
+        \BlankLine
+        $j \gets j + 4$\;
+        $rax \gets rax + 16$\;
+    }
+ }
+ \BlankLine
+ liberar la memoria de los vectores
+ \BlankLine
+ \caption{Algoritmo de blur procesando de a 4 pixeles}
+\end{algorithm}
 
 \subsection{Comentarios}
-Al comparar utilizando la imagen de diferencias la imagen generada por el blur de la catedra y la de ASM1, notamos lo siguiente:
+Al comparar utilizando la imagen de diferencias la imagen generada por el blur de la cátedra y la de ASM1, notamos lo siguiente:
 
 \begin{figure}[!htb]
 \minipage{0.2\textwidth}
@@ -135,7 +200,8 @@ Al comparar utilizando la imagen de diferencias la imagen generada por el blur d
 \endminipage
 \end{figure}
 
-Aunque las imágenes parecían exactamente iguales, habían diferencias en algunos pixeles. Estas diferencias se debian al redondeo hacia arriba llevado a cabo por la conversion desde float a entero. Mientras que el codigo en C redondeaba hacia abajo por default, las conversiones en ASM redondeaban hacia arriba por default.
+Aunque las imágenes parecían exactamente iguales, habían diferencias en algunos píxeles. Estas diferencias se debían al redondeo hacia arriba llevado a cabo por la conversión desde float a entero. Mientras que el código en C redondeaba hacia abajo por defecto, las conversiones en ASM redondeaban hacia arriba por defecto.
 
-Para resolver esto, existe un flag de SSE llamado $MXCSR$. Para mas información, ver la sección 10.2.3.1 del Volumen 1 de la guía de arquitectura Intel. Cada bit de este flag codifica algún comportamiento de las operaciones SSE. El valor por default de este flag es $0x1F80$. Para que redondee hacia abajo, utilizando la codificación de los bits del flag, había que poner el bit 12 y 13 en 1. Por lo tanto, simplemente setteamos el flag con la instruccion $ldmxcsr$ en $0x7F80$ y empezó a dar perfecto.
+Para resolver esto, existe un flag de SSE llamado $MXCSR$. Para mas información, ver la sección 10.2.3.1 del Volumen 1 de la guía de arquitectura Intel. Cada bit de este flag codifica algún comportamiento de las operaciones SSE. El valor por defecto de este flag es $0x1F80$. Para que redondee hacia abajo, utilizando la codificación de los bits del flag, había que poner el bit 12 y 13 en 1. Por lo tanto, simplemente setteamos el flag con la instrucción $ldmxcsr$ en $0x7F80$ y el algorítmo comenzó a andar sin problemas. Tuvimos esta misma problemática en todos los otros filtros más tarde.
 
+\subsection{Experimentación}
