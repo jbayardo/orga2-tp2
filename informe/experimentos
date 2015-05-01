@@ -1,0 +1,55 @@
+* acceso alineado cuando levantamos pixeles
+
+blur
+====
+* misma imagen, mismos canales, la vamos agrandando
+* random, ver que no cambia nada
+
+
+merge
+=====
+* misma imagen, mismos canales, la vamos agrandando
+* random, ver que no cambia nada
+* diferentes implemetaciones/tradeoff precision velocidad
+
+hsl
+===
+* comparaciones, imagenes que entran al primer if/ultimo if
+* accesos desalineados/alineados
+* llamadas a funciones en el loop.
+* opcional: máscaras.
+* distribucion de las imagenes en los if (comparacion de la imagen promedio)
+
+
+
+
+
+IMAGENES
+--------
+
+blur:
+- blanca. (correctitud)
+- planas para diferentes tamaños y random para la diferencia
+
+merge:
+- maximizar error (cuantificar el promedio)
+- planas para diferentes tamaños y random para la diferencia
+
+hsl:
+- hacer la cuenta para ifs (saber cual entra a cada uno)
+- planas para diferentes tamaños y random para la diferencia (mascaras)
+
+
+COMPARACIONES
+-------------
+
+-O0
+-O1
+-O2
+-O3
+-O3 -ffast-math
+nasm
+(icc?)
+
+
+
