@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  printf("%lu\n", argv[1], argv[2], result);
+  printf("%lu\n", result);
 
   return 0;
 }
