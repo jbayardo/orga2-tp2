@@ -31,27 +31,35 @@ int main(int argc, char* argv[]) {
   if (read_options(argc, argv, &opt)) {printf("ERROR reading parameters\n"); return 1;}
 
   //(1) ejecutar filtro
-  unsigned long result = 0;
+  //unsigned long result = 0;
+  printf("[");
   int i;
   if(!strcmp(opt.filter,"blur") && opt.valid==2) {
     for(i = 0; i<CORRIDAS; i++){
-       result += run_blur(opt.c_asm, opt.ops[0], opt.ops[1]);
+      if (i>0) printf(",");
+      printf("%d", run_blur(opt.c_asm, opt.ops[0], opt.ops[1]));
     }
   } else if(!strcmp(opt.filter,"merge") && opt.valid==4) {
     for(i = 0; i<CORRIDAS; i++){
-      result = run_merge(opt.c_asm, opt.ops[0], opt.ops[1], opt.ops[2], atof(opt.ops[3]));
+      
+      if (i>0) printf(",");
+      printf("%d", run_merge(opt.c_asm, opt.ops[0], opt.ops[1], opt.ops[2], atof(opt.ops[3])));
+
     }
   } else if(!strcmp(opt.filter,"hsl") && opt.valid==5) {
     for(i = 0; i<CORRIDAS; i++){
-      result = run_hsl(opt.c_asm, opt.ops[0], opt.ops[1], atof(opt.ops[2]), atof(opt.ops[3]), atof(opt.ops[4]));
+      if (i>0) printf(",");
+      printf("%d", run_hsl(opt.c_asm, opt.ops[0], opt.ops[1], atof(opt.ops[2]), atof(opt.ops[3]), atof(opt.ops[4])));
     }
   } else {
     printf("Error: filtro desconocido (%s)\n",opt.filter);
     return 1;
   }
 
-  printf("%f\n", ((float)result)/((float) CORRIDAS));
-
+  //printf("%f\n", ((float)result)/((float) CORRIDAS));
+  
+  printf("]\n");
+   
   return 0;
 }
 
