@@ -6,6 +6,7 @@
 #include "../rdtsc.h"
 
 #define MAXOPSPARAM 6
+#define CORRIDAS 100
 
 typedef struct s_options {
   char* program_name;
@@ -30,19 +31,26 @@ int main(int argc, char* argv[]) {
   if (read_options(argc, argv, &opt)) {printf("ERROR reading parameters\n"); return 1;}
 
   //(1) ejecutar filtro
-  unsigned long result;
+  unsigned long result = 0;
+  int i;
   if(!strcmp(opt.filter,"blur") && opt.valid==2) {
-    result = run_blur(opt.c_asm, opt.ops[0], opt.ops[1]);
+    for(i = 0; i<CORRIDAS; i++){
+       result += run_blur(opt.c_asm, opt.ops[0], opt.ops[1]);
+    }
   } else if(!strcmp(opt.filter,"merge") && opt.valid==4) {
-    result = run_merge(opt.c_asm, opt.ops[0], opt.ops[1], opt.ops[2], atof(opt.ops[3]));
+    for(i = 0; i<CORRIDAS; i++){
+      result = run_merge(opt.c_asm, opt.ops[0], opt.ops[1], opt.ops[2], atof(opt.ops[3]));
+    }
   } else if(!strcmp(opt.filter,"hsl") && opt.valid==5) {
-    result = run_hsl(opt.c_asm, opt.ops[0], opt.ops[1], atof(opt.ops[2]), atof(opt.ops[3]), atof(opt.ops[4]));
+    for(i = 0; i<CORRIDAS; i++){
+      result = run_hsl(opt.c_asm, opt.ops[0], opt.ops[1], atof(opt.ops[2]), atof(opt.ops[3]), atof(opt.ops[4]));
+    }
   } else {
     printf("Error: filtro desconocido (%s)\n",opt.filter);
     return 1;
   }
 
-  printf("%lu\n", result);
+  printf("%f\n", ((float)result)/((float) CORRIDAS));
 
   return 0;
 }
