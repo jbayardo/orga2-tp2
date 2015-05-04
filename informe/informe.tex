@@ -69,12 +69,21 @@
 %%%%%%%%%% Macros misceláneos - Fin %%%%%%%%%%
 
 % Registros
-\newcommand{\regfloats}[4]{\begin{tabular}{|c|c|c|c|}\hline
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+
+\newcommand{\regfloats}[4]{\begin{tabular}{|C{1.5cm}|C{1.5cm}|C{1.5cm}|C{1.5cm}|}\hline
   #1 & #2 & #3 & #4 \\ \hline \end{tabular}}
 
-\newcommand{\regintOcho}[8]{\begin{tabular}{|c|c|c|c|c|c|c|c|}\hline
-  #1 & #2 & #3 & #4 & #5 & #6 & #7 & #8  \\ \hline \end{tabular}}
-
+\newcommand{\regintOcho}[8]{
+  \vspace{0.3cm}
+  \begin{tabular}{|C{1cm}|C{1cm}|C{1cm}|C{1cm}|C{1cm}|C{1cm}|C{1cm}|C{1cm}|}\hline
+  #1 & #2 & #3 & #4 & #5 & #6 & #7 & #8  \\ \hline \end{tabular}
+  \vspace{0.3cm}
+}
 \onehalfspacing
 \begin{document}
 

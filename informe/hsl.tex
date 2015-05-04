@@ -19,14 +19,10 @@ Tambien tenemos que malloc'ear un float para llamar a las funciones rgbTOhsl y h
 
 Luego comenzamos a loopear. 
 
-Lo primero que hacemos es llamar a la función rgbTOhsl, de manera que en nuestro puntero a float que malloc'eamos nos que nos va a quedar el valor hsl del pixel en el puntero.
-
-Lo que hacemos después es recuperar los parámetros, que estaban en la pila (dado que posiblemente el llamado a rgbTOhsl haya pisado el registro).
-
-Luego cargamos los registros que vamos a suar para comparaciones y sumas y restas y finalmente guardamos el valor del pixel en hsl en xmm3
+Luego de convertir el pixel en cuestión de rgb a hsl, vamos a tener su valor en \xmm{3}.
 
 \xmm{3}
-\regfloats{LL, SS, HH, AA}
+\regfloats{LL}{SS}{HH}{AA}
 
 Luego sumamos este registro con el registro que contiene los parámetros, como indica el filtro, de manera que queda
 
