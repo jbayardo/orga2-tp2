@@ -22,7 +22,7 @@ o0: all
 o3: CFLAGS += -O3
 o3: all
 
-o3fast: CFLAGS += (-O3 -ffast-math)
+o3fast: CFLAGS += -O3 -ffast-math
 o3fast:  all
 
 shuffle: all
