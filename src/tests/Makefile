@@ -17,25 +17,3 @@ clean:
 	rm  -f *.o generate runTests
 
 
-
-o0:
-	CFLAGS+=-O0
-	make all
-	
-o3:
-	CFLAGS+=-O3
-	make all
-
-o3fast:
-	CFLAGS+=-O3 -ffast-math
-	make all
-
-shuffle:
-	make all
-	
-shifts:
-	cd ../filters/ &&	mv ASM_hsl2.asm ASM_hsl2.asm.bk &&	mv ASM_hsl2_shifts.asm ASM_hsl2.asm
-	make all
-	cd ../filters/ &&	mv ASM_hsl2.asm ASM_hsl2_shifts.asm &&	mv ASM_hsl2.asm.bk ASM_hsl2.asm
-
-
