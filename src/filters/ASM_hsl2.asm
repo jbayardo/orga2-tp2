@@ -468,8 +468,8 @@ _hslTOrgb:
   pand xmm13, xmm10
   pand xmm13, xmm14
 
-  pxor xmm10, [_todo1]
-  pand xmm14, xmm10
+  pandn xmm10, xmm14
+  movaps xmm14, xmm10
 
   paddd xmm7, xmm13
 
@@ -486,8 +486,8 @@ _hslTOrgb:
   pand xmm13, xmm10
   pand xmm13, xmm14
 
-  pxor xmm10, [_todo1]
-  pand xmm14, xmm10
+  pandn xmm10, xmm14
+  movaps xmm14, xmm10
 
   paddd xmm7, xmm13
 
@@ -503,8 +503,8 @@ _hslTOrgb:
   pand xmm13, xmm10
   pand xmm13, xmm14
 
-  pxor xmm10, [_todo1]
-  pand xmm14, xmm10
+  pandn xmm10, xmm14
+  movaps xmm14, xmm10
 
   paddd xmm7, xmm13
 
@@ -519,8 +519,8 @@ _hslTOrgb:
   pand xmm13, xmm10
   pand xmm13, xmm14
 
-  pxor xmm10, [_todo1]
-  pand xmm14, xmm10
+  pandn xmm10, xmm14
+  movaps xmm14, xmm10
 
   paddd xmm7, xmm13
 
@@ -556,8 +556,8 @@ _hslTOrgb:
   pand xmm13, xmm10
   pand xmm13, xmm14
 
-  pxor xmm10, [_todo1]
-  pand xmm14, xmm10
+  ;pandn xmm10, xmm14
+  ;movaps xmm14, xmm10
 
   paddd xmm7, xmm13
 
