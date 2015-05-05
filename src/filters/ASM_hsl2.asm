@@ -85,10 +85,10 @@ ASM_hsl2:
   mov r12d, r12d ; limpio la parte alta
   mov r13d, r13d ; de estos registros
 
-  mov rdi, TAMANIO_PIXEL_HSL
-  call malloc
+  ;mov rdi, TAMANIO_PIXEL_HSL
+  ;call malloc
 
-  mov rbx, rax   ; rbx = puntero a float
+  ;mov rbx, rax   ; rbx = puntero a float
                  ; lo voy a usar para llamar a las funciones conversoras
 
 
@@ -119,7 +119,7 @@ _loop:
   je _fin
 
   lea rdi, [r14 + 4*rcx] ; rdi = r14 + rcx
-  mov rsi, rbx         ; rsi = puntero a float
+  ;mov rsi, rbx         ; rsi = puntero a float
 
   jmp _rgbTOhsl
 rgbTOhslBack:
@@ -136,7 +136,7 @@ rgbTOhslBack:
   movss xmm11, [_256]   ; xmm11 = [ x | x | x | 256.0]
 
 
-  movups xmm3, [rbx]   ; xmn3 = [L|L|L|L | S|S|S|S | H|H|H|H | A|A|A|A]
+  ;movups xmm3, [rbx]   ; xmn3 = [L|L|L|L | S|S|S|S | H|H|H|H | A|A|A|A]
   addps xmm3, xmm4     ; xmm3 = [l + LL | s + SS | h + HH | a + 00]
 
   ;; Ahora tengo que hacer los if's. Para eso voy a usar dos registros
@@ -190,8 +190,8 @@ hslTOrgbBack:
 
 _fin:
   add rsp, 16
-  mov rdi, rbx
-  call free    ; libero la memoria que pedi
+  ;mov rdi, rbx
+  ;call free    ; libero la memoria que pedi
   add rsp, 8
   pop r15
   pop r14
@@ -340,7 +340,8 @@ _rgbTOhsl:
   pslldq xmm0, 4
   movss xmm0, xmm12
 
-  movups [rbx], xmm0
+  ;movups [rbx], xmm0
+  movaps xmm3, xmm0
 
   jmp rgbTOhslBack
 
