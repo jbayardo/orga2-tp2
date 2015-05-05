@@ -99,3 +99,12 @@ Y listo, todo terminó como queríamos.
 
 Ahora solo falta volver a convertir este numero a RGB y escribirlo a la memoria, de lo que se va a ocupar la funcion hslTOrgb.
 
+\subsection{ASM2}
+
+En la segunda implementación utilizamos fuertemente la primera.
+
+Lo que hicimos en ambas rutinas de conversión es bastante directo, siguiendo los algoritmos proveidos por la cátedra. El mayor problema que tuvimos en ambas rutinas fue que tenemos que cargar constantemente constantes que vamos a usar durante los procesos. Esto hace que la ejecución de las rutinas de conversión sea mucho mas lenta de lo que podría ser si tuvieramos más registros para guardar las constantes que usamos todo el tiempo.
+
+Este es definitivamente el factor más limitante de nuestra implementación y esperamos que impacte fuertemente en el rendimiento.
+
+
