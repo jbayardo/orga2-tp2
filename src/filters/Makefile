@@ -18,21 +18,41 @@ NASMFLAGS=-f elf64 -ggdb -F DWARF
 
 o0: CFLAGS += -O0
 o0: all
-	
+
 o3: CFLAGS += -O3
 o3: all
 
 o3fast: CFLAGS += -O3 -ffast-math
-o3fast:  all
+o3fast: all
 
-shuffle: all
-	
-shifts:
-	mv ASM_hsl2.asm ASM_hsl2.asm.bk &&	mv ASM_hsl2_shifts.asm ASM_hsl2.asm
-	make all
-	mv ASM_hsl2.asm ASM_hsl2_shifts.asm &&	mv ASM_hsl2.asm.bk ASM_hsl2.asm
+o0shift:
+	make shifts
+	make o0
+	make shuffles
 
+o3shift:
+	make shifts
+	make o3
+	make shuffles
 
+o3fastshift:
+	make shifts
+	make o3fast
+	make shuffles
 
-clean:
-	rm  -f *.o
+o0shuffles:
+	make shuffles
+	make o0
+
+o3shuffles:
+	make shuffles
+	make o3
+
+o3fastshuffles:
+	make shuffles
+	make o3fast
+
+shuffles: cp ASM_hsl2.asm ASM_hsl2_shuffles.asm
+shifts: cp ASM_hsl2.asm ASM_hsl2_shifts.asm
+
+clean: rm  -f *.o
