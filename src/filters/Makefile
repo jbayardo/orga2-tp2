@@ -16,21 +16,16 @@ NASMFLAGS=-f elf64 -ggdb -F DWARF
 %.o: %.asm
 	nasm $(NASMFLAGS) -o $@ $<
 
-o0:
-	CFLAGS+=-O0
-	make all
+o0: CFLAGS += -O0
+o0: all
 	
-o3:
-	CFLAGS+=-O3
-	make all
+o3: CFLAGS += -O3
+o3: all
 
-o3fast:
-	CFLAGS+=-O3
-	CFLAGS+=-ffast-math
-	make all
+o3fast: CFLAGS += (-O3 -ffast-math)
+o3fast:  all
 
-shuffle:
-	make all
+shuffle: all
 	
 shifts:
 	mv ASM_hsl2.asm ASM_hsl2.asm.bk &&	mv ASM_hsl2_shifts.asm ASM_hsl2.asm
