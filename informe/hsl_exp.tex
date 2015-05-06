@@ -2,7 +2,7 @@
 
 La principal limitación de nuestra implementación de assembler son, claramente, los accesos a memoria. En cada rutina (de ambas implementaciones) debemos cargar muchas constantes que usaremos a lo largo de las distintas cuentas que debemos hacer.
 Esto es muy caro para nosotros, dado que los accesos a memoria son de lo mas limitante en lo que concierne a la performance. 
-A esto atribuimos principalmente nuiestro pobre desemopeño frente a la implementacion de C.
+A esto atribuimos principalmente nuestro pobre desempeño frente a la implementación de C.
 
 De hecho por esa razón alineamos nuestras constantes que usamos todo el tiempo, buscando una ganancia en performance que efectivamente logramos.
 
@@ -19,7 +19,7 @@ Sin embargo, la complejidad del código crece enormemente, sumado a que la opera
 Por estas razones, optamos por no probar esta variante del código, pero es una opción a tener encuenta
 \\
 
-Una variante que sí implementamos fue la de utilizar shifts en vez de shuffles. De hecho esta fue nuestra primera implementación del código, dado que era más simple y despues decidimos pasarla a shuffles cuando en clase vimos que daba una mejora de la performance. Por esta razón nos pareció interesante comprobar empiricamente esto que nos fue dicho en clase.
+Una variante que sí implementamos fue la de utilizar shifts en vez de shuffles. De hecho esta fue nuestra primera implementación del código, dado que era más simple y después decidimos pasarla a shuffles cuando en clase vimos que daba una mejora de la performance. Por esta razón nos pareció interesante comprobar empíricamente esto que nos fue dicho en clase.
 
 GRAFICO DE ACCESO ALINEADO VS DESALINEADO
 

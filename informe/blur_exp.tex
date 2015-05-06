@@ -17,9 +17,9 @@ Como se puede ver en los resultados, nuestras hipótesis sobre el desempeño de 
 En general, para imagenes de tamaños standard, todas las implementaciones escalan linealmente, la única diferencia radica en la pendiente de las funciones, las de C tienen pendiente mucho mayor a las de assembler. El desempeño no depende de la imagen, dado que el tratamiento que se le hace a cada pixel no depende para nada de su contenido.
 \\
 
-Una posible mejora para el código propuesto (y aplica tambien para merge y hsl) es la utilizacion de registros AVX, que nos proveen del doble de capacidad, ya que podriamos levantar de a más pixeles, reduciendo ampliamente los accesos a memoria.
+Una posible mejora para el código propuesto (y aplica también para merge y hsl) es la utilización de registros AVX, que nos proveen del doble de capacidad, ya que podríamos levantar de a más pixeles, reduciendo ampliamente los accesos a memoria.
 Otra posible mejora para las implementaciones de blur, se podría tener solo un loop en vez de dos como tiene nuestra implementación (para filas y para columnas). Esto ahorraría algunos saltos condicionales, que pueden llegar a causar problemas por branch mispredictions.
-Sin embargo, esta alternativa es de más dificil implementación y realmente no estabamos 100\% seguros de que signifique una mejora importante.
+Sin embargo, esta alternativa es de más difícil implementación y realmente no estabamos 100\% seguros de que signifique una mejora importante.
 \\
 
 La función de C realiza mas accesos a memoria que las funciones de assembler. Esto se debe a que analiza cada canal del pixel por separado, en vez de todos juntos como nuestras implementaciones. Esto significa el triple de accesos a memoria, que claramente se ve reflejado en una pérdida de performance.
@@ -29,8 +29,8 @@ Los patrones de acceso a memoria de las dos implementaciones de assembler son ba
 Otro problema en cuanto a la memoria es el acceso alineado a las constantes que se usan a lo largo del programa (por ejemplo, la constante 9.0 que debemos usar para dividir). Sin embargo, como este problema es más profundo en el filtro de HSL, será analizado allí con la debida profundidad.
 \\
 
-Los saltos condicionales en ambas implementaciónes son algo que debemos analizar. Si una imagen tiene $n$ pixeles de ancho y $m$ de alto, entonces ambos algoritmos estaran frente una cantidad de saltos condicionales del orden de $nm+m$.
-Esto no es realmente problemático, dado que como minimo debemos realizar $nm$ saltos condicionales, y cambiar el código a esa alternativa requeriría más lógica y mas complejidad que revertirían lo positivo de ahorrar saltos.
+Los saltos condicionales en ambas implementaciónes son algo que debemos analizar. Si una imagen tiene $n$ pixeles de ancho y $m$ de alto, entonces ambos algoritmos estarán frente una cantidad de saltos condicionales del orden de $nm+m$.
+Esto no es realmente problemático, dado que como mínimo debemos realizar $nm$ saltos condicionales, y cambiar el código a esa alternativa requeriría más lógica y mas complejidad que revertirían lo positivo de ahorrar saltos.
 \\
 
 En cuanto al error generado por nuestras implementaciones, es fácilmente chequeable que es despreciable. Esto se debe principalmente a que el algoritmo es básicamente el mismo que el de C, es decir, usamos números de punto flotante y hacemos lo mismo que el programa de C, solo que más eficientemente.
