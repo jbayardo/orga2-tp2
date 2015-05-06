@@ -6,10 +6,10 @@ Esto se debe a que ambas tienen sus pros y sus contras. Por ejemplo, la segunda 
 Justamente lo interesante de este filtro es que nos permitirá definir qué pesa mas a la hora de la performance, si un buen patrón de accesos a memoria o cálculos simples. Aunque ambos aspectos son muy importantes, es interesante saber cual pesa mas a la hora de hacer optimización mas fina de nuestros programas.
 
 \begin{figure}[!hbt] 
-  \includegraphics[width=10cm]{blur-random-uniform-pixel-fixed-size_barchart.png}
 	\centering
+  \includegraphics[width=20cm]{blur-all.png}
+  \caption{Comparación de la cantidad de ciclos de reloj utilizada por diferentes variantes de merge. Para tener una medida absoluta: la cantidad de ciclos de reloj promedio de C -O3 es 4,292,457. Tamaño de la muestra: 200 imagenes de $16 \times 10^4$ píxeles. Se indica el mínimo con la barra y el promedio con una linea gris.}
 \end{figure}
-
 
 Como se puede ver en los resultados, nuestras hipótesis sobre el desempeño de assembler contra el desempeño de C eran correctas, la performance es superior. Sin embargo, la performance de las dos versiones de assembler son muy similares. Analizaremos esto mas adelante.
 

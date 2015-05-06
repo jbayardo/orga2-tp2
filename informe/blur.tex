@@ -204,4 +204,5 @@ Aunque las imágenes parecían exactamente iguales, habían diferencias en algun
 
 Para resolver esto, existe un flag de SSE llamado $MXCSR$. Para mas información, ver la sección 10.2.3.1 del Volumen 1 de la guía de arquitectura Intel. Cada bit de este flag codifica algún comportamiento de las operaciones SSE. El valor por defecto de este flag es $0x1F80$. Para que redondee hacia abajo, utilizando la codificación de los bits del flag, había que poner el bit 12 y 13 en 1. Por lo tanto, simplemente setteamos el flag con la instrucción $ldmxcsr$ en $0x7F80$ y el algorítmo comenzó a andar sin problemas. Tuvimos esta misma problemática en todos los otros filtros más tarde.
 
-\subsection{Experimentación}
+
+
