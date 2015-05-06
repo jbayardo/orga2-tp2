@@ -313,7 +313,7 @@ _rgbTOhsl:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   pxor xmm3, xmm3
 
-	movups xmm8, [_510]
+  movups xmm8, [_510]
 
   addss xmm3, xmm1
   addss xmm3, xmm0
@@ -430,13 +430,13 @@ _hslTOrgb:
   divss xmm2, xmm13 ; xmm2 = c/2
   movss xmm14, xmm2 ; xmm14 = c/2
 
-  movaps xmm2, xmm3  ; 
+  movaps xmm2, xmm3  ;
   psrldq xmm2, 12
   subss xmm2, xmm14 ; xmm2 = [x|x|x|m = L-C/2]
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;; calculo RGB           ;;
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; calculo RGB           ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ;xmm4 = h, xmm3 = pixel, xmm2 = m, xmm1 = x, xmm0 = c
   movups xmm15, [_255] ; xmm15 = 255.0
@@ -451,20 +451,20 @@ _hslTOrgb:
   cvtps2dq xmm0, xmm0
   cvtps2dq xmm1, xmm1
   cvtps2dq xmm2, xmm2 ; Los convierto todos a enteros de 32 bits
-  
-  
+
+
   pxor xmm15, xmm15 ; xmm15 = 0
   movups xmm14, [_todo1]  ; xmm14 = trabajo que hice hasta ahora (1 = nada)
 
   pxor xmm7, xmm7  ; [R|G|B|A]
-  
-;;;; RECORDAR:  EN CASO DE QUE CAMBIEN ALGO DEL CODIGO DE LA CATEDRA Y DEJE DE ANDAR, HAY QUE INTERCAMBIAR LOS c, x, 0 
+
+;;;; RECORDAR:  EN CASO DE QUE CAMBIEN ALGO DEL CODIGO DE LA CATEDRA Y DEJE DE ANDAR, HAY QUE INTERCAMBIAR LOS c, x, 0
 ;;;;; ^^^^
 ;; 60 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;en xmm13 formo el vector
   pxor xmm13, xmm13
   addss xmm13, xmm0 ; c
-  pslldq xmm13, 4   
+  pslldq xmm13, 4
   addss xmm13, xmm1 ; x
   pslldq xmm13, 4
   addss xmm13, xmm2 ; 0
@@ -488,7 +488,7 @@ _hslTOrgb:
   ;;en xmm13 formo el vector
   pxor xmm13, xmm13
   addss xmm13, xmm1 ; x
-  pslldq xmm13, 4   
+  pslldq xmm13, 4
   addss xmm13, xmm0 ; c
   pslldq xmm13, 4
   addss xmm13, xmm2 ; 0
@@ -511,7 +511,7 @@ _hslTOrgb:
   ;;en xmm13 formo el vector
   pxor xmm13, xmm13
   addss xmm13, xmm2 ; 0
-  pslldq xmm13, 4   
+  pslldq xmm13, 4
   addss xmm13, xmm0 ; c
   pslldq xmm13, 4
   addss xmm13, xmm1 ; x
@@ -533,7 +533,7 @@ _hslTOrgb:
   ;;en xmm13 formo el vector
   pxor xmm13, xmm13
   addss xmm13, xmm2 ; 0
-  pslldq xmm13, 4   
+  pslldq xmm13, 4
   addss xmm13, xmm1 ; x
   pslldq xmm13, 4
   addss xmm13, xmm0 ; c
@@ -557,7 +557,7 @@ _hslTOrgb:
   ;;en xmm13 formo el vector
   pxor xmm13, xmm13
   addss xmm13, xmm1 ; x
-  pslldq xmm13, 4   
+  pslldq xmm13, 4
   addss xmm13, xmm2 ; 0
   pslldq xmm13, 4
   addss xmm13, xmm0 ; c
@@ -581,7 +581,7 @@ _hslTOrgb:
   ;;en xmm13 formo el vector
   pxor xmm13, xmm13
   addss xmm13, xmm0 ; c
-  pslldq xmm13, 4   
+  pslldq xmm13, 4
   addss xmm13, xmm2 ; 0
   pslldq xmm13, 4
   addss xmm13, xmm1 ; x
@@ -616,9 +616,9 @@ _hslTOrgb:
 ;  packuswb xmm2, xmm15 ; Los convierto todos a enteros de 8 bits
 ;
 ;
-;  
+;
 ;  ;; HASTA ACA ES CORRECTO EL PROGRAMA
-;  
+;
 ;  psrldq xmm0, 3
 ;  psrldq xmm1, 2
 ;  psrldq xmm2, 1 ; Shifteamos a la izquierda para que nos quede tipo escalera

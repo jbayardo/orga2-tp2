@@ -300,7 +300,7 @@ _rgbTOhsl:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   pxor xmm3, xmm3
 
-	movups xmm8, [_510]
+  movups xmm8, [_510]
 
   addss xmm3, xmm1
   addss xmm3, xmm0
@@ -418,13 +418,13 @@ _hslTOrgb:
   divss xmm2, xmm13 ; xmm2 = c/2
   movss xmm14, xmm2 ; xmm14 = c/2
 
-  movaps xmm2, xmm3  ; 
+  movaps xmm2, xmm3  ;
   psrldq xmm2, 12
   subss xmm2, xmm14 ; xmm2 = [x|x|x|m = L-C/2]
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;; calculo RGB           ;;
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; calculo RGB           ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ;xmm4 = h, xmm3 = pixel, xmm2 = m, xmm1 = x, xmm0 = c
   movups xmm15, [_255] ; xmm15 = 255.0
@@ -439,27 +439,27 @@ _hslTOrgb:
   cvtps2dq xmm0, xmm0
   cvtps2dq xmm1, xmm1
   cvtps2dq xmm2, xmm2 ; Los convierto todos a enteros de 32 bits
-  
-  
+
+
   pxor xmm15, xmm15 ; xmm15 = 0
   movups xmm14, [_todo1]  ; xmm14 = trabajo que hice hasta ahora (1 = nada)
 
   pxor xmm7, xmm7  ; [R|G|B|A]
-  
-;;;; RECORDAR:  EN CASO DE QUE CAMBIEN ALGO DEL CODIGO DE LA CATEDRA Y DEJE DE ANDAR, HAY QUE INTERCAMBIAR LOS c, x, 0 
+
+;;;; RECORDAR:  EN CASO DE QUE CAMBIEN ALGO DEL CODIGO DE LA CATEDRA Y DEJE DE ANDAR, HAY QUE INTERCAMBIAR LOS c, x, 0
 ;;;;; ^^^^
    pxor xmm9, xmm9
 ;; 60 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;en xmm13 formo el vector
   pxor xmm13, xmm13
   addss xmm13, xmm0 ; c
-  pslldq xmm13, 4   
+  pslldq xmm13, 4
   addss xmm13, xmm1 ; x
   pslldq xmm13, 4
   addss xmm13, xmm2 ; 0
   pslldq xmm13, 4
   addss xmm13, [_255int] ; a
-  
+
   movaps xmm9, xmm13
 
   movaps xmm10, xmm4    ; cargo todos los h
@@ -512,7 +512,7 @@ _hslTOrgb:
   ;;en xmm13 formo el vector
   movaps xmm13, xmm9
   pshufd xmm13, xmm13, 0x6C ; 6c = 01 10 11 00
-  
+
   movaps xmm10, xmm4    ; cargo todos los h
   cmpltps xmm10, [_240]  ; comparo con 60
 
@@ -530,7 +530,7 @@ _hslTOrgb:
   ;;en xmm13 formo el vector
   movaps xmm13, xmm9
   pshufd xmm13, xmm13, 0x9C ; 9c = 10 01 11 00
-  
+
   movaps xmm10, xmm4    ; cargo todos los h
   cmpltps xmm10, [_300]  ; comparo con 60
 
@@ -548,8 +548,8 @@ _hslTOrgb:
   ;;en xmm13 formo el vector
   movaps xmm13, xmm9
   pshufd xmm13, xmm13, 0xD8 ; d8 = 11 01 10 00
-  
-  
+
+
   ;movaps xmm10, xmm4    ; cargo todos los h
   ;cmpltps xmm10, [_360]  ; comparo con 60
 
