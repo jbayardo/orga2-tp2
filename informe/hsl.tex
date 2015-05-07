@@ -107,6 +107,8 @@ Lo que hicimos en ambas rutinas de conversión es bastante directo, siguiendo lo
 
 Este es definitivamente el factor más limitante de nuestra implementación y esperamos que impacte fuertemente en el rendimiento.
 
+
+\pagebreak
 \subsection{Experimentación}
 
 Al igual que en los anteriores filtros, esperábamos que el rendimiento de nuestra implementación en assembler sea más rápida que la de C. Sin embargo los resultados nos dijeron lo contrario.
@@ -157,7 +159,7 @@ Por estas razones, optamos por no probar esta variante del código, pero es una 
 Comentando partes de códigos, pudimos obtener una partición tentativa de cuanto tarda cada operación de la segunda implementación de hsl, algo que nos parece vital a la hora de analizar la performance. Los resultados fueron los siguientes:
 
 
-\begin{figure}[!hbt] 
+\begin{figure}[H] 
 	\centering
   \includegraphics[scale=0.7]{hsl-div.png}
   \caption{Análisis comparativo del porcentaje de tiempo dedicado a cada instancia. Tamaño de la muestra: 100 imágenes de $16\times 10^4$ píxeles}
@@ -178,3 +180,30 @@ Otra posible explicación es que el código generado por GCC carga menos cosas a
 \\
 
 En conclusión, podemos ver que obtuvimos algunas respuestas en cuanto a las preguntas sobre el rendimiento en comparación de nuestro código de assembler vs. el código de C. Como resultado, podemos ver que nuestro déficit de rendimiento radica principalmente en la gran cantidad de accesos a memoria que realizamos y, en un segundo lugar, a que las cuentas y operatorias que realizamos no son óptimas.
+La mejor propuesta que se nos ocurre sería levantar de a 4 pixeles (aunque la operatoria se complejizaría mucho) o utilizar saltos condicionales para ahorrar trabajo (cosa que no hicimos porque todo debía hacerse con SSE).
+\\
+
+Para concluir con la experimentación de hsl, proponemos un experimento muy interesante. A diferencia de los otros filtros, la implementación de C es susceptible a cambios drásticos en la performance dependiendo de la imagen que se usa. Esto se debe a que el filtro tiene muchos condicionales.
+
+Entonces nos propusimos a diseñar 2 imágenes, una tal que siempre entre al primer condicional de todos los if's (Suma, hslTOrgb, rgbTOhsl), y otra tal que siempre entre al último. Uno tiende a creer que, aunque las comparaciones son operaciones, su efecto sobre la performance es casi nulo. Sin embargo nos sorpendimos.
+
+
+\begin{figure}[H] 
+	\centering
+  \includegraphics[scale=0.7]{hsl-ifs.png}
+  \caption{Análisis comparativo de la cantidad de ciclos de clock que tardan los programas en procesar una imagen de $16\times 10^4$ píxeles. Se indica con una barra de error la media podada. Tamaño de la muestra: 100 imágenes.}
+\end{figure}
+
+
+\textit{if vacio} quiere decir que los parámetros son todos 0, y la imagen es toda negra. Se puede verificar fácilmente que una tal imagen siempre entra en todos los primeros condicionales.
+
+\textit{if lleno} quiere decir que los paremetros son 99, 0, 0.
+
+
+
+
+
+
+
+
+
