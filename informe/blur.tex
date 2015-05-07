@@ -22,6 +22,7 @@ Terminamos optando por el segundo método, en favor de la mejoría de complejida
 Siguiendo la idea del código en C, ASM1 recorre el mapa de píxeles de la misma manera. El código en C procesa cada componente del píxel por separado, mientras que la idea de esta versión es procesar todos los componentes de un píxel con SSE. La idea nuevamente es iterar toda la imagen, primero por filas y luego por columnas, reemplazando los píxeles en las posiciones correspondientes.
 
 \begin{table}[h]
+\centering
 \mem
 \begin{tabular}{l|c|c|c|c|l}
  & \multicolumn{1}{l|}{}      & \multicolumn{1}{l|}{}       & \multicolumn{1}{l|}{}       & \multicolumn{1}{l|}{}       &  \\ \hline
@@ -30,6 +31,7 @@ Siguiendo la idea del código en C, ASM1 recorre el mapa de píxeles de la misma
  & \cellcolor[HTML]{FFCB2F}P9 & \cellcolor[HTML]{FFCB2F}P10 & \cellcolor[HTML]{FFCB2F}P11 & \cellcolor[HTML]{FD6864}P12 &  \\ \hline
  & \multicolumn{1}{l|}{}      & \multicolumn{1}{l|}{}       & \multicolumn{1}{l|}{}       & \multicolumn{1}{l|}{}       & 
 \end{tabular}
+\caption{Ilustracion de la memoria en blur. En este caso en particular, se esta procesando el pixel P6. Los pixeles rojos representan lo que debemos descartar al cargar de a 4 pixeles en los registros XMM. Los pixeles naranjas y el P6 son promediados para dar lugar a un nuevo pixel.}
 \end{table}
 En primer lugar, copiamos la fila correspondiente al contador de filas. Esto da inicio al loop de las filas.
 
@@ -173,6 +175,8 @@ Cabe destacar que cada una de las columnas de estos registros se corresponde con
  \caption{Algoritmo de blur procesando de a 4 píxeles}
 \end{algorithm}
 
+\pagebreak
+
 \subsection{Comentarios}
 Al comparar utilizando la imagen de diferencias la imagen generada por el blur de la cátedra y la de ASM1, notamos lo siguiente:
 
@@ -224,7 +228,7 @@ Observemos que, efectivamente, se cumple lo que esperábamos: los ciclos de relo
 \begin{figure}[!hbt] 
 	\centering
   \includegraphics[width=10cm]{blur-imagenes-grandes.png}
-  \caption{Performance de C compilado con -o3 y -ffastmath, ASM1 y ASM2. Utilizamos un conjunto de imágenes cuadrádas con tamaños múltiplos de 4 y píxeles tomados de una distribución uniforme, y medimos los resultados de 100 corridas, tomando como estadístico el mínimo de la cantidad de ciclos de reloj en todas las corridas.}
+  \caption{Performance de C compilado con -o3 y -ffastmath, ASM1 y ASM2. Utilizamos un conjunto de imágenes cuadradas con tamaños múltiplos de 4 y píxeles tomados de una distribución uniforme, y medimos los resultados de 100 corridas, tomando como estadístico el mínimo de la cantidad de ciclos de reloj en todas las corridas.}
 \end{figure}
 
 Esta vez, encontramos una brecha mucho más marcada entre las distintas implementaciones, lo que nos asegura que efectivamente el crecimiento de las constantes escondidas en la complejidad temporal está haciendo una diferencia importante a medida que aumenta la escala. Para finalizar, tomamos un ejemplo más de cerca para observar más precisamente las disparidades:

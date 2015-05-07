@@ -7,7 +7,7 @@ Lo malo de la implementación es que el código sin optimizar de C hace más ope
 
 \subsection{ASM1}
 
-En la versión primera versión del código de assembler la operatoriaes bastante distinta a la de C.
+En la versión primera versión del código de assembler la operatoria es bastante distinta a la de C.
 Al principio calculamos en xmm4 el vector de números que debemos sumarle a cada pixel hsl, con los parámetros que nos pasaron. De esta manera, 
 
 \xmm{4}
@@ -103,22 +103,22 @@ Ahora solo falta volver a convertir este numero a RGB y escribirlo a la memoria,
 
 En la segunda implementación utilizamos fuertemente la primera.
 
-Lo que hicimos en ambas rutinas de conversión es bastante directo, siguiendo los algoritmos proveidos por la cátedra. El mayor problema que tuvimos en ambas rutinas fue que tenemos que cargar constantemente constantes que vamos a usar durante los procesos. Esto hace que la ejecución de las rutinas de conversión sea mucho mas lenta de lo que podría ser si tuviéramos más registros para guardar las constantes que usamos todo el tiempo.
+Lo que hicimos en ambas rutinas de conversión es bastante directo, siguiendo los algoritmos proveídos por la cátedra. El mayor problema que tuvimos en ambas rutinas fue que tenemos que cargar constantemente constantes que vamos a usar durante los procesos. Esto hace que la ejecución de las rutinas de conversión sea mucho mas lenta de lo que podría ser si tuviéramos más registros para guardar las constantes que usamos todo el tiempo.
 
 Este es definitivamente el factor más limitante de nuestra implementación y esperamos que impacte fuertemente en el rendimiento.
 
 \subsection{Experimentación}
 
-Al igual que en los anteriores filtros, esperabamos que el rendimiento de nuestra implementación en assembler sea más rápida que la de C. Sin embargo los resultados nos dijeron lo contrario.
+Al igual que en los anteriores filtros, esperábamos que el rendimiento de nuestra implementación en assembler sea más rápida que la de C. Sin embargo los resultados nos dijeron lo contrario.
 
 
 \begin{figure}[!hbt] 
 	\centering
   \includegraphics[width=10cm]{hsl.png}
-  \caption{Comparación de la cantidad de ciclos de reloj utilizada por diferentes variantes de hsl. Para tener una medida absoluta: la cantidad de ciclos de reloj promedio de C -O3 es 31,620,627. Tamaño de la muestra: 200 imagenes de $16 \times 10^4$ píxeles. Se indica el mínimo con la barra y el promedio con una linea gris.}
+  \caption{Comparación de la cantidad de ciclos de reloj utilizada por diferentes variantes de hsl. Para tener una medida absoluta: la cantidad de ciclos de reloj promedio de C -O3 es 31,620,627. Tamaño de la muestra: 200 imágenes de $16 \times 10^4$ píxeles. Se indica el mínimo con la barra y el promedio con una linea gris.}
 \end{figure}
 
-Los resultados fueron devastadores, dado que no los esperabamos. Al igual que el resto de los filtros, el comportamiento de los algoritmos es lineal sobre la cantidad de píxeles, pero la pendiente de nuestras implementaciones de assembler es mayor que las de C.
+Los resultados fueron devastadores, dado que no los esperábamos. Al igual que el resto de los filtros, el comportamiento de los algoritmos es lineal sobre la cantidad de píxeles, pero la pendiente de nuestras implementaciones de assembler es mayor que las de C.
 
 Por esta razón nos propusimos a hacer un amplio análisis de la situación, para poder descubrir la razón del bajo rendimiento.
 
@@ -129,18 +129,18 @@ A esto atribuimos principalmente nuestro pobre desempeño frente a la implementa
 Habiendo dicho esto, también es cierto que una vez que pedimos un dato de memoria, este debería guardarse en la cache, siendo su acceso mucho más rápido. Pero la cache sigue siendo aún mas lenta que los registros del procesador, por lo que acceder a memoria (por mas que sea cache) sigue siendo un factor limitante.
 \\
 
-Al ver los resultados, nos propusimos cambiar la implementación de assembler. Nuestra primera versión utilizaba muchos shifts, y dado que en una clase vimos que el desempeño de los shifts era peor que el desempeño de los shuffles, decidimos probarlo. El resultado, como se ve en la primera imagen, no fue del todo el esperado. Sí, hubo una mejora de performance, pero no fue significativa, ni nos permitió acercarnos a la implementacion en C, nuestro principal objetivo.
+Al ver los resultados, nos propusimos cambiar la implementación de assembler. Nuestra primera versión utilizaba muchos shifts, y dado que en una clase vimos que el desempeño de los shifts era peor que el desempeño de los shuffles, decidimos probarlo. El resultado, como se ve en la primera imagen, no fue del todo el esperado. Sí, hubo una mejora de performance, pero no fue significativa, ni nos permitió acercarnos a la implementación en C, nuestro principal objetivo.
 
 
 \begin{figure}[!hbt] 
 	\centering
-  \includegraphics[width=10cm]{hsl-shsh.png}
-  \caption{Comparación de la cantidad de ciclos de reloj utilizada por dos variantes de hsl2. Tamaño de la muestra: 200 imagenes de $16 \times 10^4$ píxeles. Se indica el mínimo con la barra y el promedio con una linea gris.}
+  \includegraphics[scale=0.7]{hsl-shsh.png}
+  \caption{Comparación de la cantidad de ciclos de reloj utilizada por dos variantes de hsl2. Tamaño de la muestra: 200 imágenes de $16 \times 10^4$ píxeles. Se indica el mínimo con la barra y el promedio con una linea gris.}
 \end{figure}
 
-Como se ve en esta imagen claramente, este cambio solo nos permitió un magro 10\% de ganancia sobre la implementacion de C.
+Como se ve en esta imagen claramente, este cambio solo nos permitió un magro 10\% de ganancia sobre la implementación de C.
 
-Algo importante que notar es que esto no significa que usar shuffles es 10\% más rápido que usar shifts, si no que es bastante más rápido. Esto se debe a que nostros hacemos el análisis del programa completo, si se analizan por separado las partes en las que esta decisión incumbe, se llega a speedups de hasta el 40\%, dependiendo de la computadora.
+Algo importante que notar es que esto no significa que usar shuffles es 10\% más rápido que usar shifts, si no que es bastante más rápido. Esto se debe a que nosotros hacemos el análisis del programa completo, si se analizan por separado las partes en las que esta decisión incumbe, se llega a speedups de hasta el 40\%, dependiendo de la computadora.
 \\
 
 Por otro lado, nuestros algoritmos no dependen fuertemente en saltos condicionales, usan los necesarios, por lo tanto no creemos que este sea un factor limitante del rendimiento.
@@ -151,21 +151,21 @@ La siguiente limitación de nuestra implementación es la operatoria de las conv
 A esto se le suma la dificultad de operar de a muchos píxeles juntos, dado que solo se puede en pequeñas partes.
 Por ejemplo, en hslTOrgb se podría calcular de forma paralela c, x, m para 4 pixeles así como la operatoria de los shuffles.
 Sin embargo, la complejidad del código crece enormemente, sumado a que la operación de rgbTOhsl y la de Suma no son así de simples de paralelizar.
-Por estas razones, optamos por no probar esta variante del código, pero es una opción a tener encuenta
+Por estas razones, optamos por no probar esta variante del código, pero es una opción a tener en cuenta.
 \\
 
-Comentando partes de códigos, pudimos obtener una partición tentativa de cuanto tarda cada operacion de la segunda implementación de hsl, algo que nos parece vital a la hora de analizar la performance. Los resultados fueron los siguientes:
+Comentando partes de códigos, pudimos obtener una partición tentativa de cuanto tarda cada operación de la segunda implementación de hsl, algo que nos parece vital a la hora de analizar la performance. Los resultados fueron los siguientes:
 
 
 \begin{figure}[!hbt] 
 	\centering
-  \includegraphics[width=10cm]{hsl-div.png}
+  \includegraphics[scale=0.7]{hsl-div.png}
   \caption{Análisis comparativo del porcentaje de tiempo dedicado a cada instancia. Tamaño de la muestra: 100 imágenes de $16\times 10^4$ píxeles}
 \end{figure}
 
-Este gráfico debe intepretarse de la siguiente manera: el tiempo que se dedica en cada loop a hacer cada una de esas operaciones, es aproximadamente el indicado en el porcentaje.
+Este gráfico debe interpretarse de la siguiente manera: el tiempo que se dedica en cada loop a hacer cada una de esas operaciones, es aproximadamente el indicado en el porcentaje.
 
-A priori parecería que el proceso de Suma es más lento de lo que debería ser, lo cual es posible, dado que se cargan muchas veces las mismas cosas de memoria. Esto es inevitable en la primera implementacion de hsl (dado que las llamadas a las funciones de C nos rompen todos los registros y no podemos guardar nada), mientras que podría ser evitable en la segunda implementación.
+A priori parecería que el proceso de Suma es más lento de lo que debería ser, lo cual es posible, dado que se cargan muchas veces las mismas cosas de memoria. Esto es inevitable en la primera implementación de hsl (dado que las llamadas a las funciones de C nos rompen todos los registros y no podemos guardar nada), mientras que podría ser evitable en la segunda implementación.
 
 Sin embargo, viendo el código de nuestra implementación no parece que se pudiera mejorar demasiado (sin cambiar los algoritmos drásticamente), dado que los principales cambios que podrían realizarse son pasar de shifts a shuffles o extracts/inserts. Pero estas optimizaciones, como vimos anteriormente, no dan un speedup muy grande.
 \\
