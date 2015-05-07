@@ -64,7 +64,7 @@ Luego nos armamos 2 registros más, que vamos a usar para las comparaciones
 \regfloats{0}{0}{0}{0}
 
 
-Luego comparamos estos registros con nuestro registro \xmm{3} (nótese que como SSE carece de comparaciones de mayor o igual, hay que dar vuelta los registros y hacer una comparacion de menor o igual).
+Luego comparamos estos registros con nuestro registro \xmm{3} (nótese que como SSE carece de comparaciones de mayor o igual, hay que dar vuelta los registros y hacer una comparación de menor o igual).
 
 Por lo tanto, con el ejemplo anterior, \xmm{12} y \xmm{13} quedan así:
 
@@ -97,7 +97,7 @@ Ahora les sumamos estos registros a \xmm{3}, para terminar de llevar a cabo nues
 
 Y listo, todo terminó como queríamos.
 
-Ahora solo falta volver a convertir este numero a RGB y escribirlo a la memoria, de lo que se va a ocupar la funcion hslTOrgb.
+Ahora solo falta volver a convertir este numero a RGB y escribirlo a la memoria, de lo que se va a ocupar la función hslTOrgb.
 
 \subsection{ASM2}
 
@@ -199,7 +199,7 @@ Entonces nos propusimos a diseñar 2 imágenes, una tal que siempre entre al pri
 
 \textit{if vacio} quiere decir que los parámetros son todos 0, y la imagen es toda negra. \textit{if lleno} quiere decir que los paremetros son 99, 0, 0 y la imagen tiene los canales (255, 150, 100).  Se puede verificar fácilmente que una tal imagen siempre entra en todos los primeros condicionales y en los últimos condicionales respectivamente.
 
-Estos resultados realmente nos sorprendieron, ya que como se puede ver, el rendimiento cambia drásticamente aún para imagenes ``chicas''. Esto definitivamente va a cambiar como escribimos programas de aquí en adelante, ya que nos hizo darnos cuenta de cuanto afectan las comparaciones a la performance del código.
+Estos resultados realmente nos sorprendieron, ya que como se puede ver, el rendimiento cambia drásticamente aún para imágenes ``chicas''. Esto definitivamente va a cambiar como escribimos programas de aquí en adelante, ya que nos hizo darnos cuenta de cuanto afectan las comparaciones a la performance del código.
 Atribuimos los resultados no solo a la mayor cantidad de comparaciones, si no tambien a la gran cantidad de saltos condicionales que intervienen en el código. Debido a esto, probablemente el branch predictor no actue de la mejor manera y no se aproveche todo el potencial del pipelining.
 
 
