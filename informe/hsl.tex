@@ -107,6 +107,8 @@ Lo que hicimos en ambas rutinas de conversión es bastante directo, siguiendo lo
 
 Este es definitivamente el factor más limitante de nuestra implementación y esperamos que impacte fuertemente en el rendimiento.
 
+
+\pagebreak
 \subsection{Experimentación}
 
 Al igual que en los anteriores filtros, esperábamos que el rendimiento de nuestra implementación en assembler sea más rápida que la de C. Sin embargo los resultados nos dijeron lo contrario.
@@ -157,7 +159,7 @@ Por estas razones, optamos por no probar esta variante del código, pero es una 
 Comentando partes de códigos, pudimos obtener una partición tentativa de cuanto tarda cada operación de la segunda implementación de hsl, algo que nos parece vital a la hora de analizar la performance. Los resultados fueron los siguientes:
 
 
-\begin{figure}[!hbt] 
+\begin{figure}[H] 
 	\centering
   \includegraphics[scale=0.7]{hsl-div.png}
   \caption{Análisis comparativo del porcentaje de tiempo dedicado a cada instancia. Tamaño de la muestra: 100 imágenes de $16\times 10^4$ píxeles}
@@ -170,11 +172,40 @@ A priori parecería que el proceso de Suma es más lento de lo que debería ser,
 Sin embargo, viendo el código de nuestra implementación no parece que se pudiera mejorar demasiado (sin cambiar los algoritmos drásticamente), dado que los principales cambios que podrían realizarse son pasar de shifts a shuffles o extracts/inserts. Pero estas optimizaciones, como vimos anteriormente, no dan un speedup muy grande.
 \\
 
-Lo último que queda inspeccionar para encontrar una razón por la cual el código de C le gana al nuestro, es mirando el output de assembler de GCC. 
+Lo último que queda inspeccionar para encontrar una razón por la cual el código de C le gana al nuestro, es mirando el output de assembler de GCC. Para ello, corremos el comando \texttt{gcc -O3 -S -nasm=intel -fverbose-asm C\_hsl.c}.
 
 Lo primero que se nota en el código de assembler outputeado por GCC es el uso de saltos condicionales. Como el código de este algoritmo depende fuertemente en condifionales (ifs), el hecho de poder utilizar saltos inteligentemente como lo puede hacer un compilador (en vez de máscaras como usamos nosotros) puede dar ventajas.
 
 Otra posible explicación es que el código generado por GCC carga menos cosas a memoria en cada loop (aunque no tantas). Esto se debe principalmente a que tiene un uso mas ajustado y eficiente de los registros, por lo tanto tiene algunos de sobra para guardar datos a los que va acceder seguido.
+
+Finalmente, queremos hablar de algo que nos llamó la atención del código generado por gcc. Utiliza fuertemente una instrucción llamada \texttt{UCOMISS}. Leyendo el manual, vemos que esta instrucción permite realizar comparaciones y que el resultado se vea plasmado en los el registro \texttt{EFLAGS}. Esto, obviamente nos daría una altisima ganancia en performance, pero cuando aprendimos sobre esta instrucción (mientras analizabamos el output de GCC), ya era demasiado tarde para cambiar totalmente nuestra implementación.
 \\
 
 En conclusión, podemos ver que obtuvimos algunas respuestas en cuanto a las preguntas sobre el rendimiento en comparación de nuestro código de assembler vs. el código de C. Como resultado, podemos ver que nuestro déficit de rendimiento radica principalmente en la gran cantidad de accesos a memoria que realizamos y, en un segundo lugar, a que las cuentas y operatorias que realizamos no son óptimas.
+La mejor propuesta que se nos ocurre sería levantar de a 4 pixeles (aunque la operatoria se complejizaría mucho) o utilizar saltos condicionales para ahorrar trabajo (cosa que no hicimos porque todo debía hacerse con SSE).
+\\
+
+Para concluir con la experimentación de hsl, proponemos un experimento muy interesante. A diferencia de los otros filtros, la implementación de C es susceptible a cambios drásticos en la performance dependiendo de la imagen que se usa. Esto se debe a que el filtro tiene muchos condicionales.
+
+Entonces nos propusimos a diseñar 2 imágenes, una tal que siempre entre al primer condicional de todos los if's (Suma, hslTOrgb, rgbTOhsl), y otra tal que siempre entre al último. Uno tiende a creer que, aunque las comparaciones son operaciones, su efecto sobre la performance es casi nulo. Sin embargo nos sorpendimos.
+
+
+\begin{figure}[H] 
+	\centering
+  \includegraphics[scale=0.7]{hsl-ifs.png}
+  \caption{Análisis comparativo de la cantidad de ciclos de clock que tardan los programas en procesar una imagen de $16\times 10^4$ píxeles. Se indica con una barra de error la media podada. Tamaño de la muestra: 100 imágenes.}
+\end{figure}
+
+
+\textit{if vacio} quiere decir que los parámetros son todos 0, y la imagen es toda negra. \textit{if lleno} quiere decir que los paremetros son 99, 0, 0 y la imagen tiene los canales (255, 150, 100).  Se puede verificar fácilmente que una tal imagen siempre entra en todos los primeros condicionales y en los últimos condicionales respectivamente.
+
+Estos resultados realmente nos sorprendieron, ya que como se puede ver, el rendimiento cambia drásticamente aún para imagenes ``chicas''. Esto definitivamente va a cambiar como escribimos programas de aquí en adelante, ya que nos hizo darnos cuenta de cuanto afectan las comparaciones a la performance del código.
+Atribuimos los resultados no solo a la mayor cantidad de comparaciones, si no tambien a la gran cantidad de saltos condicionales que intervienen en el código. Debido a esto, probablemente el branch predictor no actue de la mejor manera y no se aproveche todo el potencial del pipelining.
+
+
+
+
+
+
+
+

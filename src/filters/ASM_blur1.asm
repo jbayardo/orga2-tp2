@@ -99,7 +99,13 @@ ASM_blur1:
 .loop_columns:
 
   ; sumo la primera fila de pixeles (res: xmm1)
-  movdqu xmm1, [r15 + r8*SIZE_PIXEL] ; xmm1 = [x|x|x|x B|G|R|A B|G|R|A B|G|R|A]
+  movq xmm1, [r15 + r8*SIZE_PIXEL] ; xmm1 = [x|x|x|x B|G|R|A B|G|R|A B|G|R|A]
+  movd xmm2, [r15 + r8*SIZE_PIXEL+8] ; xmm1 = [x|x|x|x B|G|R|A B|G|R|A B|G|R|A]
+  pslldq xmm2, 8
+  por xmm2, xmm1
+  movaps xmm1, xmm2
+
+
 
   pslldq xmm1, 4
   psrldq xmm1, 4
@@ -112,7 +118,11 @@ ASM_blur1:
   paddw xmm1, xmm2     ; xmm1 = [B2|G2|R2|A2 B1+B3|G1+G3|R1+R3|A1+A3]
 
   ; sumo la segunda fila de pixeles (res: xmm2)
-  movdqu xmm2, [r14 + r8*SIZE_PIXEL] ; xmm2 = [x|x|x|x B|G|R|A B|G|R|A B|G|R|A]
+  movq xmm2, [r14 + r8*SIZE_PIXEL] ; xmm2 = [x|x|x|x B|G|R|A B|G|R|A B|G|R|A]
+  movd xmm3, [r14 + r8*SIZE_PIXEL+8]
+  pslldq xmm3, 8
+  por xmm3, xmm2
+  movaps xmm2, xmm3
 
   pslldq xmm2, 4
   psrldq xmm2, 4
@@ -147,7 +157,12 @@ ASM_blur1:
   ; sumo la tercera fila (sin 'hack', da igual)
   mov r9, rdi
   add r9, rbx
-  movdqu xmm3, [r13 + r9*SIZE_PIXEL] ; [D|C|B|A]
+  
+  movq xmm3, [r13 + r9*SIZE_PIXEL] ; [D|C|B|A]
+  movd xmm4, [r13 + r9*SIZE_PIXEL+8] ; [D|C|B|A]
+  pslldq xmm4, 8
+  por xmm4, xmm3
+  movaps xmm3, xmm4
 
   pslldq xmm3, 4
   psrldq xmm3, 4 ; xmm3 = [0|C|B|A]

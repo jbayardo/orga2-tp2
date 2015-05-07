@@ -397,7 +397,7 @@ _hslTOrgb:
   movups xmm12, xmm1; xmm12 = [x|x|x|H/60]
   movss xmm13, [_2] ; xmm13 = [x|x|x|2]
   divss xmm12, xmm13
-  roundss xmm12, xmm12, 0xff ;; CONSULTAR : modo de redondeo
+  roundss xmm12, xmm12, 0xf ;; CONSULTAR : modo de redondeo
   mulss xmm12, xmm13
   subss xmm1, xmm12  ; xmm1 = [x|x|x|n-trunc(n/d)*d = fmod(H/60, 2)]
   movss xmm13, [_1111]
@@ -549,15 +549,8 @@ _hslTOrgb:
   movaps xmm13, xmm9
   pshufd xmm13, xmm13, 0xD8 ; d8 = 11 01 10 00
 
-
-  ;movaps xmm10, xmm4    ; cargo todos los h
-  ;cmpltps xmm10, [_360]  ; comparo con 60
-
   pand xmm13, xmm10
   pand xmm13, xmm14
-
-  ;pandn xmm10, xmm14
-  ;movaps xmm14, xmm10
 
   paddd xmm7, xmm13
 

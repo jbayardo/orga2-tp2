@@ -5,6 +5,17 @@
 ;                                                                           ;
 ; ************************************************************************* ;
 
+section .data
+
+_1: dd 1.0
+_muchos256: dd 256.0, 256.0, 256.0, 256.0
+_muchos257ints: dw 257, 257, 257, 257, 257, 257, 257, 257
+_11111111: dw 1, 1, 1, 1, 1, 1, 1, 1
+_floor: dd 0x7F80
+
+
+section .text
+
 ; void ASM_merge2(uint32_t w, uint32_t h, uint8_t* data1, uint8_t* data2, float value)
 global ASM_merge2
 ASM_merge2:
@@ -15,7 +26,7 @@ ASM_merge2:
   push r14
   push r15
 
-  ;ldmxcsr [_floor]
+
                 ; xmm0 = value
   mov r12d, edi ; r12 = w
   mov r13d, esi ; r13 = h
@@ -65,8 +76,8 @@ ASM_merge2:
   ;;; tengo que hacer xmm1*xmm3 + xmm2*xmm4 ;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
-  movdqu xmm1, [r14 + rbx] ; xmm1 = [x|x|x|x|x|x|x|x | B|G|R|A|B|G|R|A]
-  movdqu xmm2, [r15 + rbx] ; xmm2 = [x|x|x|x|x|x|x|x | B|G|R|A|B|G|R|A]
+  movq xmm1, [r14 + rbx] ; xmm1 = [x|x|x|x|x|x|x|x | B|G|R|A|B|G|R|A]
+  movq xmm2, [r15 + rbx] ; xmm2 = [x|x|x|x|x|x|x|x | B|G|R|A|B|G|R|A]
 
   punpcklbw xmm1, xmm6     ; xmm1 =  [0|B|0|G|0|R|0|A | 0|B|0|G|0|R|0|A] 
   punpcklbw xmm2, xmm6     ; xmm2 =  [0|B|0|G|0|R|0|A | 0|B|0|G|0|R|0|A] 
@@ -85,17 +96,6 @@ ASM_merge2:
   
   packuswb xmm1, xmm1      ; xmm1 = [0|0|0|0|0|0|0|0 | B|G|R|A~|B|G|R|A~]
   
-  ;movdqa xmm5, xmm10
-  ;pslldq xmm5, 15
-  ;psrldq xmm5, 15
-  ;paddb xmm1, xmm5
-  ;movdqa xmm5, xmm10
-  ;pslldq xmm5, 11
-  ;psrldq xmm5, 15
-  ;pslldq xmm5, 4
-  ;paddb xmm1, xmm5
-
-
   movsd [r14 + rbx], xmm1  ; lo guardo de nuevo en memoria
 
   add rbx, 8
@@ -111,10 +111,4 @@ ASM_merge2:
   pop r12
   pop rbp
   ret
-
-_1: dd 1.0
-_muchos256: dd 256.0, 256.0, 256.0, 256.0
-_muchos257ints: dw 257, 257, 257, 257, 257, 257, 257, 257
-_11111111: dw 1, 1, 1, 1, 1, 1, 1, 1
-_floor: dd 0x7F80
 

@@ -33,28 +33,17 @@ Siguiendo la idea del código en C, ASM1 recorre el mapa de píxeles de la misma
 \end{tabular}
 \caption{Ilustracion de la memoria en blur. En este caso en particular, se esta procesando el pixel P6. Los pixeles rojos representan lo que debemos descartar al cargar de a 4 pixeles en los registros XMM. Los pixeles naranjas y el P6 son promediados para dar lugar a un nuevo pixel.}
 \end{table}
+
 En primer lugar, copiamos la fila correspondiente al contador de filas. Esto da inicio al loop de las filas.
 
-Luego, en el ciclo de las columnas, buscamos en la copia de la primera fila los 4 píxeles (16 bytes) correspondientes al iterador actual de las columnas. Cada píxel ocupa 32 bits, 1 byte por cada componente ARGB. En la memoria, los archivos $.bmp$ guardan los componentes de los píxeles en el orden A B G R. Como la arquitectura Intel es little-endian, al mover estos píxeles a un registro, no solo se invertirá el orden de los píxeles sino que también el de sus componentes.
 
-\mem
-\regfloats{$A_1B_1G_1R_1$}{$A_2B_2G_2R_2$}{$A_4B_3G_3R_3$}{$A_4B_4G_4R_4$}
+Luego, en el ciclo de las columnas, buscamos en la copia de la primera fila los 4 píxeles (16 bytes) correspondientes al iterador actual de las columnas.
+Por la razón explicada anteriormente, debemos levantar los canales por separado, de tal manera de no hacer lecturas inválidas. 
 
-\xmm{1}
-\regfloats{$R_4G_4B_4A_4$}{$R_4G_3B_3A_3$}{$R_2G_2B_2A_2$}{$R_1G_1B_1A_1$}
+Cada píxel ocupa 32 bits, 1 byte por cada componente ARGB. En la memoria, los archivos $.bmp$ guardan los componentes de los píxeles en el orden A B G R.
+Como la arquitectura Intel es little-endian, al mover estos píxeles a un registro, no solo se invertirá el orden de los píxeles sino que también el de sus componentes.
 
-Aquí nosotros hemos levantado 4 píxeles de memoria. Sin embargo notar que para el promedio de los vecinos de un píxel solo necesitamos los 3 primeros. Por lo tanto limpiamos el registro \xmm{1} con un desplazamiento a la izquierda y luego uno a la derecha:
 
-\xmm{1}
-\regfloats{$0$}{$R_4G_3B_3A_3$}{$R_2G_2B_2A_2$}{$R_1G_1B_1A_1$}
-
-Luego, hacemos las operaciones de empaquetado y desempaquetado para expandir el tamaño de cada componente de píxel de 8 a 16 bits. Esto lo hacemos para que mas adelante cuando tengamos que sumar no tengamos overflow al sumar los componentes de dos píxeles.
-
-\xmm{1}
-\regintOcho{$R_2$}{$G_2$}{$B_2$}{$A_2$}{$R_1$}{$G_1$}{$B_1$}{$A_1$}
-
-\xmm{2}
-\regintOcho{0}{0}{0}{0}{$R_3$}{$G_3$}{$B_3$}{$A_3$}
 
 Ahora sumamos \xmm{1} y \xmm{2}, poniendo el resultado en \xmm{1}:
 
@@ -180,6 +169,7 @@ Cabe destacar que cada una de las columnas de estos registros se corresponde con
 
 \pagebreak
 
+
 \subsection{Comentarios}
 Al comparar utilizando la imagen de diferencias la imagen generada por el blur de la cátedra y la de ASM1, notamos lo siguiente:
 
@@ -218,6 +208,11 @@ Cabe destacar, de cualquier forma, que nuestra intuición probablemente falle: t
 
 Haciendo un análisis poco delicado, observemos que la versión de ASM1 tiene 4 saltos condicionales, contra los 5 de ASM2, por lo que en principio, suponiendo que el branch predictor falle, la versión de ASM2 podría terminar siendo más cara. Por otro lado, el hecho de procesar de a 4 píxeles nos dará una ventaja difícil de estimar con respecto al ASM1. En términos del acceso a memoria, ambas versiones hacen uso de la memoria relativamente poco con respecto a los otros algoritmos, entrando solamente con fines de obtener las filas necesarias para procesar los datos, por lo que estimamos que en principio no debería ser el factor más importante, a pesar que todos los accesos que realizamos son desalineados.
 
+Una cosa que nos parece importante resaltar es la manera de la que levantamos los píxeles en la ASM1. Hay muchas formas posibles, por ejemplo, levantar de a 4 siempre, excepto en la última iteración en la que se debe hacer algun malabar para no levantar la parte que causaría un invalid read.
+Esta forma uno pensaría que tiene un rendimiento muy superior porque se levantan menos cosas de memoria.
+Sin embargo, nuestra primera versión de la implementación levantaba así los pixeles, y tenía el problema del invalid read. Por esa razon, decidimos cambiarnos a la versión actual. La performance no se vió golpeada. Atribuimos esto a que una vez que leimos los datos, estos quedan en la cache, entonces la siguiente lectura va a ser mucho más rápida. Por otro lado, nos ahorramos algunos saltos condicionales que pueden causar algún que otro branch misprediction.
+
+
 Además, la performance de nuestros algoritmos de Blur no se verá afectada por ninguna otra característica de la imagen que el tamaño: ninguno de los algoritmos actúa según condiciones sobre el contenido de las imágenes. Las tres implementaciones simplemente procesan datos, sin comparar con ninguna otra cosa que no sea el número de columna o de fila. En concreto, esperamos que nuestras implementaciones en Assembler sean ambas más rápidas que la de C, y que entre ellas ASM2 sea más rápida que ASM1 (fundamentalmente por el procesamiento en paralelo de a muchos píxeles).
 
 \begin{figure}[!b]
@@ -243,3 +238,4 @@ Esta vez, encontramos una brecha mucho más marcada entre las distintas implemen
 \end{figure}
 
 Como habíamos notado antes, el hecho de estar utilizando imágenes pequeñas no ayuda a que se note la diferencia entre ASM1 y ASM2. Pensamos que uno de los posibles motivos para esto es que los algoritmos que escribimos no están optimizados en tanto a sus accesos a memoria: ambos hacen accesos desalineados. Una posible mejora para el algoritmo de ASM2 sería utilizar los registros AVX para poder obtener más píxeles de memoria, disminuyendo la cantidad de accesos, y permitiéndonos un trabajo mucho más rápido, procesando de a 8 píxeles en simultaneo. Otra posible mejora sería pedir que las direcciones de memoria con las que trabajamos estén alineadas a 16 bits. Esto nos permitiría realizar siempre accesos alineados, lo que debería mejorar la performance de nuestros algoritmos.
+
