@@ -7,7 +7,7 @@ $$m_{i, j} = (m_{i-1, j-1} + m_{i-1, j} + m_{i-1, j+1} + m_{i, j-1} + m_{i, j} +
 
 Las consecuencias de adoptar este método son fundamentalmente dos; en primer lugar, nótese que esto significa que no vamos a procesar los píxeles en los bordes, ya que no tienen la cantidad suficiente de píxeles vecinos.
 
-En segundo lugar, debemos tener en cuenta que el cálculo de blur en particular requiere utilizar datos de los elementos aledaños en la matriz, por lo que es imposible procesar la imagen con una complejidad espacial de $O(1)$, de cualquier forma debemos incurrir en un costo de espacio. Evaluamos dos formas de solucionar este problema:
+En segundo lugar, debemos tener en cuenta que el cálculo de blur en particular requiere utilizar datos de los elementos anteriormente procesados. Esto significa que es imposible procesar la imagen con una complejidad espacial de \order{1}, dado que no podemos simplemente guardar nuestros resultados en la misma imagen. Evaluamos dos formas de solucionar este problema:
 
 \begin{itemize}
 \item La primera, crear una nueva matriz en memoria con las mismas dimensiones que la matriz procesada, para poder calcular utilizando los datos originales y guardar en esta matriz. Este método tiene la desventaja de tener una complejidad espacial de $O(w*h)$, fuera de que se agrega un $O(w*h)$ de complejidad temporal para copiar los datos desde la nueva matriz creada hacia la matriz original. Además, este método tiene la desventaja de tener que cuidarse en el copiado para no sobre escribir el borde de la matriz original.
@@ -15,7 +15,7 @@ En segundo lugar, debemos tener en cuenta que el cálculo de blur en particular 
 \item La segunda, seguir la metodología utilizada en el código de C provisto por la cátedra: mantener dos punteros a memoria de tamaño $w$ que guarden las dos primeras filas originales de la matriz que estamos procesando, y vayan corriéndose a medida que aumentamos la cantidad de filas. Este método toma $O(w)$ de complejidad espacial, con un $O(w)$ de complejidad temporal en el ciclo principal de las filas, para poder copiar los nuevos datos. La ventaja de este método con respecto al anterior reside en el menor uso de memoria, ya que en términos de complejidad temporal el trabajo se amortiza a lo largo de los ciclos.
 \end{itemize}
 
-Terminamos optando por el segundo método, en favor de la mejoría de complejidad espacial a cambio de un golpe en la complejidad conceptual del algoritmo y mayor dificultad en el código fuente. Procedemos a desarrollar los casos particulares de nuestras implementaciones.
+Terminamos optando por el segundo método, en favor de la mejoría de complejidad espacial a cambio de un golpe en la dificultad conceptual del algoritmo y su código fuente. Procedemos a desarrollar los casos particulares de nuestras implementaciones.
 
 \subsection{ASM1}
 
