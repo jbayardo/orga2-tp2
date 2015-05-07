@@ -33,7 +33,7 @@ Siguiendo la idea del código en C, ASM1 recorre el mapa de píxeles de la misma
 \end{table}
 En primer lugar, copiamos la fila correspondiente al contador de filas. Esto da inicio al loop de las filas.
 
-Luego, en el loop de las columnas, buscamos en la copia de la primera fila los 4 píxeles (16 bytes) correspondientes al iterador actual de las columnas. Cada píxel ocupa 32 bits, 1 byte por cada componente ARGB. En la memoria, los archivos $.bmp$ guardan los componentes de los píxeles en el orden A B G R. Como la arquitectura Intel es little-endian, al mover estos píxeles a un registro, no solo se invertirá el orden de los píxeles sino que también el de sus componentes.
+Luego, en el ciclo de las columnas, buscamos en la copia de la primera fila los 4 píxeles (16 bytes) correspondientes al iterador actual de las columnas. Cada píxel ocupa 32 bits, 1 byte por cada componente ARGB. En la memoria, los archivos $.bmp$ guardan los componentes de los píxeles en el orden A B G R. Como la arquitectura Intel es little-endian, al mover estos píxeles a un registro, no solo se invertirá el orden de los píxeles sino que también el de sus componentes.
 
 \mem
 \regfloats{$A_1B_1G_1R_1$}{$A_2B_2G_2R_2$}{$A_4B_3G_3R_3$}{$A_4B_4G_4R_4$}
@@ -41,7 +41,7 @@ Luego, en el loop de las columnas, buscamos en la copia de la primera fila los 4
 \xmm{1}
 \regfloats{$R_4G_4B_4A_4$}{$R_4G_3B_3A_3$}{$R_2G_2B_2A_2$}{$R_1G_1B_1A_1$}
 
-Aquí nosotros hemos levantado 4 píxeles de memoria. Sin embargo notar que para el promedio de los vecinos de un píxel solo necesitamos los 3 primeros. Por lo tanto limpiamos el registro \xmm{1} con un shift a la izquierda y luego uno a la derecha:
+Aquí nosotros hemos levantado 4 píxeles de memoria. Sin embargo notar que para el promedio de los vecinos de un píxel solo necesitamos los 3 primeros. Por lo tanto limpiamos el registro \xmm{1} con un desplazamiento a la izquierda y luego uno a la derecha:
 
 \xmm{1}
 \regfloats{$0$}{$R_4G_3B_3A_3$}{$R_2G_2B_2A_2$}{$R_1G_1B_1A_1$}
@@ -75,7 +75,7 @@ Ahora sumamos los tres registros en \xmm{1}. Por cuestiones de claridad, lo repr
 \xmm{1}
 \regintOcho{3B}{3G}{3B}{3A}{6R}{6G}{6B}{6A}
 
-Copiamos \xmm{1} en \xmm{2} y lo shifteamos 8 bytes a la derecha:
+Copiamos \xmm{1} en \xmm{2} y lo desplazamos 8 bytes a la derecha:
 
 \xmm{2}
 \regintOcho{0}{0}{0}{0}{3B}{3G}{3B}{3A}
@@ -129,22 +129,21 @@ Cabe destacar que cada una de las columnas de estos registros se corresponde con
 
 \begin{algorithm}[H]
 \DontPrintSemicolon
-\SetKwData{Left}{left}\SetKwData{This}{this}\SetKwData{Up}{up}
 \SetKwFunction{Swap}{Swap}
 \SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
 
  \Input{Puntero a la matriz de píxeles representando la imagen, $w$ su ancho, $h$ su altura}
- \Output{La matriz de píxeles se actualizo, habiendosele aplicado blur}
+ \Output{La matriz de píxeles se actualizo, luego de haberse aplicado blur}
  \BlankLine
  crear vectores de para las primeras filas ($r10$ y $r11$)\;
  $r10 \gets$ fila $0$ de la matriz (copiada)\;
- inicializar el indice $rax$ a la submatriz\;
+ inicializar el índice $rax$ a la submatriz\;
  \BlankLine
  \For{$i \gets 1$ \KwTo $h - 2$} {
     $rax \gets$ nuevo índice de la submatriz, $rax + i*w*4$\;
     \Swap($r10$, $r11$)\;
     $r10 \gets$ fila $i$ de la matriz (copiada)\;
-    $rax \gets$ nuevo indice de la submatriz, $rax + i*w*4$\;
+    $rax \gets$ nuevo índice de la submatriz, $rax + i*w*4$\;
     \BlankLine
     \For{$j \gets 1$ \KwTo $w - 2$} {
         \If{$j == w-3$} {
@@ -157,11 +156,11 @@ Cabe destacar que cada una de las columnas de estos registros se corresponde con
         sumar los registros, ahora hay 3 registros con las 6 columnas\;
         \BlankLine
         \For{$k \gets 0$ \KwTo 3} {
-            sumar las columnas necesarias para el $k$-esimo pixel\;
+            sumar las columnas necesarias para el $k$-ésimo píxel\;
             convertir los canales a float\;
             dividirlos por 9\;
-            convertir todo de vuelta a 1 byte con saturacion\;
-            guardar el pixel en memoria\;
+            convertir todo de vuelta a 1 byte con saturación\;
+            guardar el píxel en memoria\;
         }
         \BlankLine
         $j \gets j + 4$\;
@@ -171,7 +170,7 @@ Cabe destacar que cada una de las columnas de estos registros se corresponde con
  \BlankLine
  liberar la memoria de los vectores
  \BlankLine
- \caption{Algoritmo de blur procesando de a 4 pixeles}
+ \caption{Algoritmo de blur procesando de a 4 píxeles}
 \end{algorithm}
 
 \subsection{Comentarios}
@@ -202,7 +201,38 @@ Al comparar utilizando la imagen de diferencias la imagen generada por el blur d
 
 Aunque las imágenes parecían exactamente iguales, habían diferencias en algunos píxeles. Estas diferencias se debían al redondeo hacia arriba llevado a cabo por la conversión desde float a entero. Mientras que el código en C redondeaba hacia abajo por defecto, las conversiones en ASM redondeaban hacia arriba por defecto.
 
-Para resolver esto, existe un flag de SSE llamado $MXCSR$. Para mas información, ver la sección 10.2.3.1 del Volumen 1 de la guía de arquitectura Intel. Cada bit de este flag codifica algún comportamiento de las operaciones SSE. El valor por defecto de este flag es $0x1F80$. Para que redondee hacia abajo, utilizando la codificación de los bits del flag, había que poner el bit 12 y 13 en 1. Por lo tanto, simplemente setteamos el flag con la instrucción $ldmxcsr$ en $0x7F80$ y el algorítmo comenzó a andar sin problemas. Tuvimos esta misma problemática en todos los otros filtros más tarde.
+Para resolver esto, existe un flag de SSE llamado $MXCSR$. Para mas información, ver la sección 10.2.3.1 del Volumen 1 de la guía de arquitectura Intel. Cada bit de este flag codifica algún comportamiento de las operaciones SSE. El valor por defecto de este flag es $0x1F80$. Para que redondee hacia abajo, utilizando la codificación de los bits del flag, había que poner el bit 12 y 13 en 1. Por lo tanto, simplemente setteamos el flag con la instrucción $ldmxcsr$ en $0x7F80$ y el algoritmo comenzó a andar sin problemas. Tuvimos esta misma problemática en todos los otros filtros más tarde.
 
+\subsection{Experimentación}
 
+Es fácil darse cuenta, ya sea mirando el código o comprendiendo qué es lo que debe hacer el algoritmo de Blur, de que todas las implementaciones del mismo van tener una complejidad temporal de $O(w*h)$, indicando que la cantidad de operaciones que realizará el algoritmo serán de orden cuadrático si tomamos $w = h = n$. Es decir, los gráficos que generemos deberán tener la forma de una parábola a medida que $n$ se vuelva más grande. Lo interesante, y he aquí donde radican las ventajas de hacer el código en Assembler, es que sabemos que las tres implementaciones diferirán en un múltiplo constante de las otras (por la definición de $O$). Intuitivamente, el código de ASM1 debería ir aproximadamente 3 veces más rápido por píxel que el de C, ya que procesa cada canal en paralelo con SIMD, y el código de ASM2 debería ser unas 4 veces más rápido que el de ASM1, ya que no sólo procesa los canales en paralelo, sino que además procesa los píxeles en grupos de a cuatro.
 
+Cabe destacar, de cualquier forma, que nuestra intuición probablemente falle: tanto las optimizaciones que pueda llegar a realizar el compilador de C al código, así como también cuestiones de acceso a memoria en las distintas implementaciones (inclusive las instrucciones utilizadas en cada caso, o el branch predictor), y particularidades respecto del estado actual del sistema en el que se corren los experimentos pueden hacer variar los números obtenidos ampliamente, como veremos más adelante en el caso de HSL.
+
+Haciendo un análisis poco delicado, observemos que la versión de ASM1 tiene 4 saltos condicionales, contra los 5 de ASM2, por lo que en principio, suponiendo que el branch predictor falle, la versión de ASM2 podría terminar siendo más cara. Por otro lado, el hecho de procesar de a 4 píxeles nos dará una ventaja difícil de estimar con respecto al ASM1. En términos del acceso a memoria, ambas versiones hacen uso de la memoria relativamente poco con respecto a los otros algoritmos, entrando solamente con fines de obtener las filas necesarias para procesar los datos, por lo que estimamos que en principio no debería ser el factor más importante, a pesar que todos los accesos que realizamos son desalineados.
+
+Además, la performance de nuestros algoritmos de Blur no se verá afectada por ninguna otra característica de la imagen que el tamaño: ninguno de los algoritmos actúa según condiciones sobre el contenido de las imágenes. Las tres implementaciones simplemente procesan datos, sin comparar con ninguna otra cosa que no sea el número de columna o de fila. En concreto, esperamos que nuestras implementaciones en Assembler sean ambas más rápidas que la de C, y que entre ellas ASM2 sea más rápida que ASM1 (fundamentalmente por el procesamiento en paralelo de a muchos píxeles).
+
+\begin{figure}[!b]
+	\centering
+  \includegraphics[width=10cm]{blur-imagenes-chicas.png}
+  \caption{Performance de C compilado con -o3 y -ffastmath, ASM1 y ASM2. Utilizamos un conjunto de imágenes cuadrádas con tamaños múltiplos de 4 y píxeles tomados de una distribución uniforme, y medimos los resultados de 100 corridas, tomando como estadístico el mínimo de la cantidad de ciclos de reloj en todas las corridas.}
+\end{figure}
+
+Observemos que, efectivamente, se cumple lo que esperábamos: los ciclos de reloj crecen de forma cuadrática en relación al tamaño de la imagen. Además, notese que tienen relativamente poco desvío una implementación con respecto a la otra, suponemos que esto quiere decir que tienen comportamientos regulares con respecto al pipeline y sus accesos a memoria (de otra forma, tendríamos más picos en el gráfico). Nos sorprendió mucho que la implementación de ASM1 se asimile tanto a la de ASM2, ya que esperábamos una mayor amplitud entre las curvas; por esto, corrimos un nuevo experimento tomando tamaños de imagen mucho más grandes:
+
+\begin{figure}[!hbt] 
+	\centering
+  \includegraphics[width=10cm]{blur-imagenes-grandes.png}
+  \caption{Performance de C compilado con -o3 y -ffastmath, ASM1 y ASM2. Utilizamos un conjunto de imágenes cuadrádas con tamaños múltiplos de 4 y píxeles tomados de una distribución uniforme, y medimos los resultados de 100 corridas, tomando como estadístico el mínimo de la cantidad de ciclos de reloj en todas las corridas.}
+\end{figure}
+
+Esta vez, encontramos una brecha mucho más marcada entre las distintas implementaciones, lo que nos asegura que efectivamente el crecimiento de las constantes escondidas en la complejidad temporal está haciendo una diferencia importante a medida que aumenta la escala. Para finalizar, tomamos un ejemplo más de cerca para observar más precisamente las disparidades:
+
+\begin{figure}[!hbt] 
+	\centering
+  \includegraphics[width=17cm]{blur-all.png}
+  \caption{Performance de C compilado con -o0, C compilado con -o3 y -ffastmath, ASM1 y ASM2. Utilizamos una imagen roja de $400 \times 400$, con píxeles tomados de una distribución uniforme, y medimos los resultados de 100 corridas, tomando como estadístico el mínimo de la cantidad de ciclos de reloj en todas las corridas.}
+\end{figure}
+
+Como habíamos notado antes, el hecho de estar utilizando imágenes pequeñas no ayuda a que se note la diferencia entre ASM1 y ASM2. Pensamos que uno de los posibles motivos para esto es que los algoritmos que escribimos no están optimizados en tanto a sus accesos a memoria: ambos hacen accesos desalineados. Una posible mejora para el algoritmo de ASM2 sería utilizar los registros AVX para poder obtener más píxeles de memoria, disminuyendo la cantidad de accesos, y permitiéndonos un trabajo mucho más rápido, procesando de a 8 píxeles en simultaneo. Otra posible mejora sería pedir que las direcciones de memoria con las que trabajamos estén alineadas a 16 bits. Esto nos permitiría realizar siempre accesos alineados, lo que debería mejorar la performance de nuestros algoritmos.

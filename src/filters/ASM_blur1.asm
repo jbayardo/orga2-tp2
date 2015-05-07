@@ -7,13 +7,15 @@
 
 %define SIZE_PIXEL 4
 
+section .data
+align 16
+_9: dd 9.0, 9.0, 9.0, 9.0
+_floor: dd 0x7F80
+
+section .text
 extern malloc
 extern free
 
-; gdb --args tp2 asm1 blur lena.bmp lenablurc.bmp
-; ./diff -i blur1asm.bmp lenablurc.bmp 5
-
-; rax, rbx*, rcx, rdx, rsi, rdi, rbp, rsp, r8 ...  R12*, R13*, R14*, R15*
 ; void ASM_blur1( uint32_t w, uint32_t h, uint8_t* data )
 global ASM_blur1
 ASM_blur1:
@@ -49,7 +51,7 @@ ASM_blur1:
   ldmxcsr [_floor]
 
   ; armar registro para dividir
-  movdqu xmm7, [_9]
+  movdqa xmm7, [_9]
 
   pxor xmm6, xmm6  ; para desempaquetar
 
@@ -93,10 +95,6 @@ ASM_blur1:
 .clean_counter:
   sub rdi, rbx ; rdi subio cuando copie la fila, ahora se lo resto
   xor r8, r8   ; contador de columnas (lo reutilizo)
-
-; debug
-; x /16ub $r15+$r8*4
-; p /u $xmm1
 
 .loop_columns:
 
@@ -203,6 +201,3 @@ ASM_blur1:
   pop rbx
   pop rbp
   ret
-
-_9: dd 9.0, 9.0, 9.0, 9.0
-_floor: dd 0x7F80
