@@ -197,9 +197,7 @@ Entonces nos propusimos a diseñar 2 imágenes, una tal que siempre entre al pri
 \end{figure}
 
 
-\textit{if vacio} quiere decir que los parámetros son todos 0, y la imagen es toda negra. Se puede verificar fácilmente que una tal imagen siempre entra en todos los primeros condicionales.
-
-\textit{if lleno} quiere decir que los paremetros son 99, 0, 0.
+\textit{if vacio} quiere decir que los parámetros son todos 0, y la imagen es toda negra. \textit{if lleno} quiere decir que los paremetros son 99, 0, 0 y la imagen tiene los canales (255, 150, 100).  Se puede verificar fácilmente que una tal imagen siempre entra en todos los primeros condicionales y en los últimos condicionales respectivamente.
 
 Estos resultados realmente nos sorprendieron, ya que como se puede ver, el rendimiento cambia drásticamente aún para imagenes ``chicas''. Esto definitivamente va a cambiar como escribimos programas de aquí en adelante, ya que nos hizo darnos cuenta de cuanto afectan las comparaciones a la performance del código.
 Atribuimos los resultados no solo a la mayor cantidad de comparaciones, si no tambien a la gran cantidad de saltos condicionales que intervienen en el código. Debido a esto, probablemente el branch predictor no actue de la mejor manera y no se aproveche todo el potencial del pipelining.

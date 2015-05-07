@@ -1,3 +1,4 @@
+$\\[4cm]$
 \section{Merge}
 
 \subsection{C}
@@ -105,7 +106,7 @@ Esperamos también que la performance mejore aún más en la segunda implementac
 
 Viendo los resultados, confirmamos nuestras hipótesis. De hecho, la performance de nuestros programas son mejores que las esperadas.
 
-Como puede verse en los gráficos de escalabilidad, la performance de todos los algoritmos depende linealmente de la cantidad de píxeles de la imagen, sin embargo lo que cambia entre las diferentes implementaciones es la pendiente de esta función lineal.
+Haciendo tests con diferentes tamaños de imágenes para testear la escalabilidad escalabilidad, la performance de todos los algoritmos depende linealmente de la cantidad de píxeles de la imagen, lo cual es bastante esperable, dado que el trabajo que se realiza por cada pixel es constante. Sin embargo lo que cambia entre las diferentes implementaciones es la pendiente de esta función lineal.
 
 La performance no depende de la imagen, dado que la operación que se realiza siempre es la misma, sin depender de los píxeles en cuestión.
 Sin embargo, hay una cuestión con el error. Si el $\alpha$ que nos pasan por parámetro tiene muchos decimales detrás de la coma, es muy probable, y de hecho pasa, que nuestra segunda implementación en Assembler pierde precisión frente a la implementación de C. Esto fue explicado anteriormente, sin embargo creímos pertinente nombrarlo.
@@ -119,6 +120,8 @@ Aunque es posible que la gran mayoría de los accesos sean a cache, la performan
 El acceso a memoria en nuestros códigos de Assembler es lo mínimo indispensable. La única mejora que se podría hacer con respecto al acceso a memoria es lo que fue nombrado anteriormente es la idea de hacer un unroll del ciclo y leer de a 4 píxeles, pero creemos que la performance no mejorará significativamente.
 
 La diferencia entre operar con punto flotante y con enteros es significativa. Aunque ambas implementaciones en Assembler son mucho mas rápidas que la implementación de C, la que opera con enteros es nuevamente (bastante) más rápida que la que opera con punto flotante. Esto se debe a que en general las operaciones con enteros son mucho mas rápidas que las de punto flotante.
+
+
 
 
 
